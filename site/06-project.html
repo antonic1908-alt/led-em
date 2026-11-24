@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проєкт: розумна стрічка</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 06</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>06. Проєкт: розумна LED-стрічка</h1>
+<p class="lead">Технічне завдання, логіка роботи, меню і архітектура прошивки. Код лежить у <code>firmware/src/</code>; тут пояснено, як він влаштований і чому саме так.</p>
+
+<h2 id="spec">Що вміє пристрій</h2>
+<ol>
+  <li>Керує одноколірною стрічкою 5 В через AO3400: ШІМ 20 кГц, гамма-корекція, плавне вмикання й вимикання.</li>
+  <li><b>Режим АВТО</b>: вмикає світло, коли спрацював датчик руху та/або дистанції і <b>темно</b> (або завжди — налаштовується). Після останнього спрацювання світить N секунд і плавно гасне.</li>
+  <li><b>Режим РУЧНИЙ</b>: датчики ігноруються, світло вмикається і вимикається лише кнопкою.</li>
+  <li>Показує стан на OLED; усі параметри змінюються в меню кнопками.</li>
+  <li>Зберігає налаштування у flash: ESP32 — NVS (<code>Preferences</code>), STM32 — EEPROM-емуляція.</li>
+  <li>Раз на секунду пише лог у Serial.</li>
+</ol>
+
+<h2 id="buttons">Кнопки</h2>
+<div class="table-wrap"><table>
+<tr><th>Кнопка</th><th>Головний екран</th><th>Меню: перегляд</th><th>Меню: редагування</th></tr>
+<tr><td><b>MANUAL</b> коротко</td><td>у РУЧНОМУ — увімк/вимк; в АВТО — перейти в РУЧНИЙ і перемкнути</td><td>вийти (зберегти)</td><td>скасувати</td></tr>
+<tr><td><b>MANUAL</b> довго (0.7 с)</td><td>АВТО ↔ РУЧНИЙ</td><td>—</td><td>—</td></tr>
+<tr><td><b>OK</b></td><td>відкрити меню</td><td>редагувати / виконати</td><td>підтвердити</td></tr>
+<tr><td><b>UP / DOWN</b></td><td>яскравість ±5 %</td><td>рух по пунктах</td><td>змінити значення; утримання — автоповтор</td></tr>
+</table></div>
+<p>Меню закривається саме через 30 с без натискань, і налаштування при цьому зберігаються.</p>
+
+<h2 id="logic">Логіка режиму АВТО — скінченний автомат</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="Діаграма станів: OFF, ON, HOLD">
+  <defs><marker id="mk6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+  <circle cx="130" cy="160" r="70" class="d-box2"/>
+  <text x="130" y="152" text-anchor="middle" class="d-tb">OFF</text><text x="130" y="172" text-anchor="middle" class="d-ts">стрічка гасне / темна</text>
+  <text x="130" y="190" text-anchor="middle" class="d-ts">оцінюємо «темно»</text>
+  <circle cx="420" cy="90" r="64" class="d-acc"/>
+  <text x="420" y="86" text-anchor="middle" class="d-tb">ON</text><text x="420" y="106" text-anchor="middle" class="d-ts">світить, тригер є</text>
+  <circle cx="420" cy="250" r="64" class="d-warn"/>
+  <text x="420" y="246" text-anchor="middle" class="d-tb">HOLD</text><text x="420" y="266" text-anchor="middle" class="d-ts">світить, рахує час</text>
+
+  <path d="M190 120 C250 70 300 70 354 82" class="d-arrow" marker-end="url(#mk6)"/>
+  <text x="205" y="62" class="d-t">тригер &amp;&amp; (темно || «Завжди»)</text>
+  <path d="M440 152 C452 175 452 180 440 186" class="d-arrow" marker-end="url(#mk6)"/>
+  <text x="462" y="166" class="d-t">тригер зник</text>
+  <text x="462" y="184" class="d-ts">→ старт таймера</text>
+  <path d="M398 190 C388 175 388 165 398 154" class="d-arrow" marker-end="url(#mk6)"/>
+  <text x="250" y="174" class="d-t">тригер знову</text>
+  <path d="M356 262 C280 280 220 250 180 212" class="d-arrow" marker-end="url(#mk6)"/>
+  <text x="170" y="300" class="d-t">минуло «Утримання» секунд</text>
+
+  <rect x="560" y="40" width="220" height="250" rx="10" class="d-box"/>
+  <text x="575" y="66" class="d-tb">Тригер =</text>
+  <text x="575" y="90" class="d-tm">Рух</text><text x="650" y="90" class="d-ts">лише PIR</text>
+  <text x="575" y="112" class="d-tm">Дистанція</text><text x="660" y="112" class="d-ts">dist &lt; поріг</text>
+  <text x="575" y="134" class="d-tm">Рух/Дист</text><text x="660" y="134" class="d-ts">АБО (за замовч.)</text>
+  <text x="575" y="156" class="d-tm">Рух+Дист</text><text x="660" y="156" class="d-ts">І</text>
+  <text x="575" y="190" class="d-tb">«Темно» =</text>
+  <text x="575" y="212" class="d-t">lux &lt; поріг → так</text>
+  <text x="575" y="232" class="d-t">lux &gt; поріг + гіст. → ні</text>
+  <text x="575" y="252" class="d-ts">між ними — без змін</text>
+  <text x="575" y="274" class="d-ts">оцінюється лише в OFF!</text>
+</svg>
+</div>
+<figcaption>Три стани і чотири переходи. Яскравість між станами змінюється плавно (LedDriver).</figcaption>
+</figure>
+
+<div class="callout warn"><span class="callout-title">Пастка зворотного зв'язку</span>Якщо оцінювати «темно» постійно, то стрічка ввімкнеться, її світло потрапить на датчик, стане «світло» — і вона вимкне сама себе, потім знову ввімкнеться… Тому освітленість оцінюється <b>лише коли стрічка вимкнена</b>.</div>
+
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span>Це Animator Controller з трьома станами і умовами переходів. У коді це <code>enum class State { Off, On, Hold }</code> і <code>switch (state_)</code> в методі <code>update()</code>, який викликається кожен кадр.</div>
+
+<pre><code><span class="k">switch</span> (state_) {
+  <span class="k">case</span> State::Off:
+    <span class="k">if</span> (trigger_ &amp;&amp; lightOk) state_ = State::On;
+    <span class="k">break</span>;
+  <span class="k">case</span> State::On:
+    <span class="k">if</span> (!trigger_) { state_ = State::Hold; holdStart_ = now; }
+    <span class="k">break</span>;
+  <span class="k">case</span> State::Hold:
+    <span class="k">if</span> (trigger_) state_ = State::On;
+    <span class="k">else if</span> (now - holdStart_ &gt;= s_.holdSec * <span class="n">1000UL</span>) state_ = State::Off;
+    <span class="k">break</span>;
+}</code></pre>
+
+<h2 id="menu">Меню і параметри</h2>
+<div class="table-wrap"><table>
+<tr><th>Пункт</th><th>Діапазон</th><th class="num">За замовч.</th><th>Сенс</th></tr>
+<tr><td>Поріг світла</td><td>1–2000 lx</td><td class="num">30</td><td>«темно», якщо нижче</td></tr>
+<tr><td>Гістерезис</td><td>0–200 lx</td><td class="num">10</td><td>щоб не блимало на межі</td></tr>
+<tr><td>Датчик світла</td><td>BH1750 / Аналог</td><td class="num">BH1750</td><td>аналоговий — LDR або TEMT6000</td></tr>
+<tr><td>Умова</td><td>Лише темно / Завжди</td><td class="num">Лише темно</td><td>«Завжди» — ігнорувати освітленість</td></tr>
+<tr><td>Тригер</td><td>Рух / Дистанція / Рух/Дист / Рух+Дист</td><td class="num">Рух/Дист</td><td>що вважати присутністю людини</td></tr>
+<tr><td>Фільтр руху</td><td>0–2000 мс</td><td class="num">0</td><td><b>програмна чутливість PIR</b></td></tr>
+<tr><td>Утримання</td><td>5–600 с</td><td class="num">30</td><td>скільки світити після останнього тригера</td></tr>
+<tr><td>Поріг дист.</td><td>5–400 см</td><td class="num">80</td><td>«близько», якщо ближче</td></tr>
+<tr><td>Яскравість</td><td>5–100 %</td><td class="num">80</td><td>цільова яскравість</td></tr>
+<tr><td>Плавність</td><td>0–5000 мс</td><td class="num">800</td><td>час переходу 0 → 100 %</td></tr>
+<tr><td>Скинути все</td><td>дія</td><td class="num">—</td><td>значення за замовчуванням</td></tr>
+<tr><td>Вихід</td><td>дія</td><td class="num">—</td><td>зберегти і вийти</td></tr>
+</table></div>
+
+<h3 id="screens">Як виглядають екрани</h3>
+<div class="cards">
+<figure style="margin:0">
+<svg viewBox="0 0 256 128" role="img" aria-label="Головний екран" style="background:#000;border-radius:6px">
+  <rect x="0" y="0" width="256" height="32" style="fill:var(--oled-yellow)" opacity=".18"/>
+  <g font-family="monospace" font-size="20">
+  <text x="4" y="24" style="fill:var(--oled-yellow)">АВТО</text><text x="252" y="24" text-anchor="end" style="fill:var(--oled-yellow)">80%</text>
+  <rect x="0" y="30" width="256" height="2" style="fill:var(--oled-yellow)"/>
+  <text x="4" y="54" font-size="17" style="fill:var(--oled-blue)">Світло 8.4 lx</text><text x="252" y="54" text-anchor="end" font-size="17" style="fill:var(--oled-blue)">BH</text>
+  <text x="4" y="80" font-size="17" style="fill:var(--oled-blue)">Рух: так</text><text x="252" y="80" text-anchor="end" font-size="17" style="fill:var(--oled-blue)">*Дист 54</text>
+  <text x="4" y="110" font-size="17" style="fill:var(--oled-blue)">Утримання 12s</text>
+  </g>
+</svg>
+<figcaption>Головний екран. «*» означає, що об'єкт ближче за поріг.</figcaption>
+</figure>
+<figure style="margin:0">
+<svg viewBox="0 0 256 128" role="img" aria-label="Меню: перегляд" style="background:#000;border-radius:6px">
+  <g font-family="monospace" font-size="17">
+  <text x="4" y="24" font-size="20" style="fill:var(--oled-yellow)">Меню</text><text x="252" y="24" text-anchor="end" font-size="20" style="fill:var(--oled-yellow)">2/12</text>
+  <rect x="0" y="30" width="256" height="2" style="fill:var(--oled-yellow)"/>
+  <text x="4" y="52" style="fill:var(--oled-blue)">Поріг світла</text><text x="252" y="52" text-anchor="end" style="fill:var(--oled-blue)">30lx</text>
+  <rect x="0" y="58" width="256" height="24" style="fill:var(--oled-blue)"/>
+  <text x="4" y="76" fill="#000">Гістерезис</text><text x="252" y="76" text-anchor="end" fill="#000">10lx</text>
+  <text x="4" y="100" style="fill:var(--oled-blue)">Датчик світла</text><text x="252" y="100" text-anchor="end" style="fill:var(--oled-blue)">BH1750</text>
+  <text x="4" y="124" style="fill:var(--oled-blue)">Умова</text><text x="252" y="124" text-anchor="end" style="fill:var(--oled-blue)">Лише темно</text>
+  </g>
+</svg>
+<figcaption>Меню: виділений рядок інвертовано. UP/DOWN — вибір, OK — редагувати.</figcaption>
+</figure>
+<figure style="margin:0">
+<svg viewBox="0 0 256 128" role="img" aria-label="Меню: редагування значення" style="background:#000;border-radius:6px">
+  <g font-family="monospace" font-size="17">
+  <text x="4" y="24" font-size="20" style="fill:var(--oled-yellow)">Зміна значення</text>
+  <rect x="0" y="30" width="256" height="2" style="fill:var(--oled-yellow)"/>
+  <text x="4" y="52" style="fill:var(--oled-blue)">Утримання</text>
+  <rect x="196" y="36" width="58" height="22" style="fill:var(--oled-blue)"/><text x="250" y="52" text-anchor="end" fill="#000">45с</text>
+  <text x="4" y="76" style="fill:var(--oled-blue)">Поріг дист.</text><text x="252" y="76" text-anchor="end" style="fill:var(--oled-blue)">80см</text>
+  <text x="4" y="100" style="fill:var(--oled-blue)">Яскравість</text><text x="252" y="100" text-anchor="end" style="fill:var(--oled-blue)">80%</text>
+  <text x="4" y="124" style="fill:var(--oled-blue)">Плавність</text><text x="252" y="124" text-anchor="end" style="fill:var(--oled-blue)">800мс</text>
+  </g>
+</svg>
+<figcaption>Редагування: інвертовано лише значення. OK — зберегти, MANUAL — скасувати.</figcaption>
+</figure>
+</div>
+
+<h2 id="arch">Архітектура прошивки</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 800 300" role="img" aria-label="Модулі прошивки і потік даних">
+  <defs><marker id="mk7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-muted"/></marker></defs>
+  <rect x="300" y="110" width="200" height="80" rx="12" class="d-acc"/>
+  <text x="400" y="142" text-anchor="middle" class="d-tb">main.cpp</text><text x="400" y="162" text-anchor="middle" class="d-ts">loop(): опитати → вирішити →</text><text x="400" y="178" text-anchor="middle" class="d-ts">показати</text>
+  <rect x="20" y="20" width="200" height="56" rx="9" class="d-box2"/><text x="36" y="44" class="d-tb">Buttons</text><text x="36" y="64" class="d-ts">Short / Long / Repeat</text>
+  <rect x="20" y="96" width="200" height="56" rx="9" class="d-box2"/><text x="36" y="120" class="d-tb">Sensors</text><text x="36" y="140" class="d-ts">Light · Motion · Distance</text>
+  <rect x="20" y="172" width="200" height="56" rx="9" class="d-box2"/><text x="36" y="196" class="d-tb">Settings</text><text x="36" y="216" class="d-ts">struct + flash</text>
+  <rect x="580" y="20" width="200" height="56" rx="9" class="d-info"/><text x="596" y="44" class="d-tb">Controller</text><text x="596" y="64" class="d-ts">режими + state machine</text>
+  <rect x="580" y="96" width="200" height="56" rx="9" class="d-box2"/><text x="596" y="120" class="d-tb">LedDriver</text><text x="596" y="140" class="d-ts">ШІМ, гамма, fade</text>
+  <rect x="580" y="172" width="200" height="56" rx="9" class="d-box2"/><text x="596" y="196" class="d-tb">Ui</text><text x="596" y="216" class="d-ts">OLED, меню (U8g2)</text>
+  <rect x="300" y="236" width="200" height="50" rx="9" class="d-box"/><text x="400" y="258" text-anchor="middle" class="d-tb">config.h</text><text x="400" y="276" text-anchor="middle" class="d-ts">піни ESP32 / STM32</text>
+  <path d="M220 48 C260 48 260 130 298 130" class="d-line" marker-end="url(#mk7)"/>
+  <path d="M220 124 H298" class="d-line" marker-end="url(#mk7)"/>
+  <path d="M220 200 C260 200 260 170 298 170" class="d-line" marker-end="url(#mk7)" stroke-dasharray="4 3"/>
+  <path d="M500 130 C540 130 540 48 578 48" class="d-line" marker-end="url(#mk7)"/>
+  <path d="M500 150 H578 V124" class="d-line" marker-end="url(#mk7)"/>
+  <path d="M500 170 C540 170 540 200 578 200" class="d-line" marker-end="url(#mk7)"/>
+</svg>
+</div>
+<figcaption>Модулі не знають один про одного; «склеює» їх <code>main.cpp</code>, як bootstrap-скрипт сцени.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<tr><th>Файл</th><th>Відповідальність</th><th>Аналог у Unity</th></tr>
+<tr><td><code>config.h</code></td><td>піни ESP32/STM32, константи, режим симуляції</td><td>статичний клас-конфіг</td></tr>
+<tr><td><code>Settings.h/.cpp</code></td><td>структура налаштувань, межі, збереження</td><td>ScriptableObject + PlayerPrefs</td></tr>
+<tr><td><code>Buttons.h/.cpp</code></td><td>антибрязкіт, події Short / Long / Repeat</td><td>Input System actions</td></tr>
+<tr><td><code>Sensors.h/.cpp</code></td><td>світло, рух, дистанція; автоперехід на аналог, якщо BH1750 немає</td><td>компоненти-сенсори</td></tr>
+<tr><td><code>LedDriver.h/.cpp</code></td><td>ШІМ, гамма, плавний fade</td><td>DOTween</td></tr>
+<tr><td><code>Controller.h/.cpp</code></td><td>режими і state machine</td><td>Animator / GameManager</td></tr>
+<tr><td><code>Ui.h/.cpp</code></td><td>екрани й меню (кирилиця)</td><td>UI Canvas</td></tr>
+<tr><td><code>main.cpp</code></td><td><code>setup()</code>/<code>loop()</code>, з'єднує все</td><td>bootstrap сцени</td></tr>
+</table></div>
+
+<h3 id="principles">Принципи</h3>
+<ul>
+  <li><b>Жодного <code>delay()</code></b>: кожен модуль має <code>update(now)</code>, що повертається майже миттєво.</li>
+  <li>Апаратні відмінності ESP32 і STM32 сховані за <code>#if defined(ARDUINO_ARCH_ESP32)</code> лише в трьох місцях: піни, ШІМ, збереження.</li>
+  <li>Налаштування зберігаються не на кожне натискання, а при виході з меню — flash має обмежену кількість циклів запису.</li>
+  <li>Без BH1750 або датчика дистанції прошивка не падає: переходить на аналоговий датчик або показує «--».</li>
+</ul>
+
+<h2 id="build">Збірка, прошивка, симуляція</h2>
+<pre><code>cd firmware
+pio run -e esp32c3 -t upload        <span class="c"># реальна плата</span>
+pio device monitor -b 115200
+pio run -e esp32c3_sim              <span class="c"># для Wokwi (HC-SR04 замість VL53L0X)</span></code></pre>
+<p>Очікуваний лог:</p>
+<pre><code>[main] boot
+[cfg] defaults
+[light] BH1750 found
+[dist] VL53L0X ready
+[main] ready, light=BH1750 dist=VL53L0X
+[ctrl] mode=AUTO state=OFF(0s) lux=8.4 dark=1 motion=0 dist=0cm near=0 out=0%
+[ctrl] mode=AUTO state=ON(0s) lux=8.4 dark=1 motion=1 dist=54cm near=1 out=63%</code></pre>
+
+<h2 id="accept">Критерії приймання</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="a1" data-key="a1"><label for="a1">Темно + рух → стрічка плавно вмикається за «Плавність» мс</label></li>
+  <li><input type="checkbox" id="a2" data-key="a2"><label for="a2">Рух зник → через «Утримання» с плавно гасне; новий рух продовжує світіння</label></li>
+  <li><input type="checkbox" id="a3" data-key="a3"><label for="a3">Світло в кімнаті (lux &gt; поріг + гіст.) → рух не вмикає стрічку</label></li>
+  <li><input type="checkbox" id="a4" data-key="a4"><label for="a4">Стрічка, що світить на датчик, не вимикає сама себе</label></li>
+  <li><input type="checkbox" id="a5" data-key="a5"><label for="a5">Довге MANUAL перемикає режим; у РУЧНОМУ коротке — вмикає/вимикає</label></li>
+  <li><input type="checkbox" id="a6" data-key="a6"><label for="a6">Усі пункти меню змінюються і переживають перезавантаження</label></li>
+  <li><input type="checkbox" id="a7" data-key="a7"><label for="a7">Без BH1750 — працює від аналогового датчика; без датчика дистанції — «--»</label></li>
+</ul>
+
+<h2 id="ideas">Ідеї для розвитку</h2>
+<ul>
+  <li>«Нічний режим»: 20 % яскравості вночі (час через Wi-Fi + NTP).</li>
+  <li>Керування з телефону: вебсторінка на ESP32 або BLE.</li>
+  <li>Кілька зон стрічки (ще один MOSFET).</li>
+  <li>Адресна стрічка WS2812B та ефекти (FastLED).</li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

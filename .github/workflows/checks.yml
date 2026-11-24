@@ -1,0 +1,47 @@
+# Автоматичні перевірки кожного Pull Request (і кожного злиття в main):
+#   1) прошивка і всі уроки компілюються (pio run);
+#   2) на сайті немає битих внутрішніх посилань.
+# Якщо щось червоне — PR не можна злити (якщо увімкнено захист гілки main).
+name: Перевірки
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Збірка ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false            # якщо впала прошивка, все одно перевірити уроки (і навпаки)
+      matrix:
+        include:
+          - project: firmware
+            envs: -e esp32c3 -e esp32c3_sim -e blackpill
+          - project: lessons
+            envs: -e l01_blink -e l02_button -e l03_pwm_mosfet -e l04_adc_ldr -e l05_pir -e l06_i2c_bh1750 -e l07_oled -e l08_distance
+    steps:
+      - uses: actions/checkout@v4                 # завантажити код
+      - uses: actions/cache@v4                    # кеш компіляторів і платформ — щоб наступні запуски були швидші
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: pio-${{ runner.os }}-${{ matrix.project }}-${{ hashFiles(format('{0}/platformio.ini', matrix.project)) }}
+      - uses: actions/setup-python@v5             # PlatformIO написаний на Python
+        with:
+          python-version: '3.12'
+      - run: pip install platformio               # встановити PlatformIO
+      - run: pio run -d ${{ matrix.project }} ${{ matrix.envs }}   # зібрати всі env-и проєкту
+
+  links:
+    name: Посилання на сайті
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2        # перевірка посилань
+        with:
+          # --offline: лише локальні файли й якорі (#...), без запитів до зовнішніх сайтів
+          args: --offline --include-fragments --no-progress 'site/**/*.html'
+          fail: true

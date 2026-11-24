@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Уроки 01–08</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / Уроки</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>Уроки 01–08</h1>
+<p class="lead">Вісім коротких вправ: кожна вчить одну річ, потрібну для фінального проєкту. Піни в уроках ті самі, що й у проєкті, тож схему на макетці можна нарощувати поступово.</p>
+
+<div class="callout tip"><span class="callout-title">Як проходити урок</span>
+1) Прочитайте мету і схему. 2) Зберіть у Wokwi або на макетці. 3) Прошийте:
+<code>cd lessons</code> → <code>pio run -e l0X_… -t upload</code> → <code>pio device monitor</code>. 4) Виконайте «Зміни сам». 5) Попросіть ШІ поставити вам 3 контрольні питання.</div>
+
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Урок</th><th>Env</th><th>Деталі</th><th>Wokwi</th></tr>
+<tr><td>01</td><td><a href="#l01">Blink + Serial</a></td><td><code>l01_blink</code></td><td>лише плата</td><td>✓</td></tr>
+<tr><td>02</td><td><a href="#l02">Кнопки</a></td><td><code>l02_button</code></td><td>кнопка</td><td>✓</td></tr>
+<tr><td>03</td><td><a href="#l03">ШІМ + MOSFET</a></td><td><code>l03_pwm_mosfet</code></td><td>AO3400, стрічка, БЖ</td><td>LED замість стрічки</td></tr>
+<tr><td>04</td><td><a href="#l04">АЦП + фоторезистор</a></td><td><code>l04_adc_ldr</code></td><td>GL5516, 10k</td><td>✓ (модуль)</td></tr>
+<tr><td>05</td><td><a href="#l05">PIR</a></td><td><code>l05_pir</code></td><td>HC-SR501</td><td>✓</td></tr>
+<tr><td>06</td><td><a href="#l06">I2C + BH1750</a></td><td><code>l06_i2c_bh1750</code></td><td>GY-302</td><td>лише сканер</td></tr>
+<tr><td>07</td><td><a href="#l07">OLED</a></td><td><code>l07_oled</code></td><td>SSD1306</td><td>✓</td></tr>
+<tr><td>08</td><td><a href="#l08">Дистанція</a></td><td><code>l08_distance</code></td><td>VL53L0X або HC-SR04P</td><td>HC-SR04</td></tr>
+</table></div>
+
+<!-- ===================== Arduino чи C++ ===================== -->
+<h2 id="arduino-cpp" data-short="Arduino чи C++?">Перед уроками: «Arduino» чи «C++»?</h2>
+<p>Кожен урок починається з рядка <code>#include &lt;Arduino.h&gt;</code>. Звідси часте питання: ми пишемо на Arduino чи на C++? Це не вибір «або-або». <b>Весь код уроків і проєкту написаний на C++</b>, а Arduino — це бібліотека (фреймворк), написана на C++, якою ми користуємось.</p>
+
+<div class="table-wrap"><table>
+<tr><th>Unity</th><th>Наш проєкт</th></tr>
+<tr><td>Мова <b>C#</b></td><td>Мова <b>C++</b></td></tr>
+<tr><td>Рушій <b>Unity</b> з API <code>UnityEngine</code></td><td>Фреймворк <b>Arduino</b> з API <code>Arduino.h</code></td></tr>
+<tr><td><code>using UnityEngine;</code></td><td><code>#include &lt;Arduino.h&gt;</code></td></tr>
+<tr><td><code>Debug.Log</code>, <code>Time.time</code>, <code>Input.GetKey</code></td><td><code>Serial.println</code>, <code>millis()</code>, <code>digitalRead()</code></td></tr>
+<tr><td><code>Start()</code> / <code>Update()</code> викликає рушій</td><td><code>setup()</code> / <code>loop()</code> викликає ядро Arduino</td></tr>
+</table></div>
+
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span>Ви ж не кажете «я пишу на Unity, а не на C#»: ви пишете на C#, використовуючи Unity. Тут так само: пишемо на C++, використовуючи Arduino.</div>
+
+<h3>Що робить <code>#include &lt;Arduino.h&gt;</code></h3>
+<p><code>#include</code> буквально вставляє вміст файлу <code>Arduino.h</code> у ваш файл перед компіляцією. Після цього компілятор знає:</p>
+<ul>
+<li>функції роботи з пінами: <code>pinMode</code>, <code>digitalWrite</code>, <code>digitalRead</code>, <code>analogRead</code>;</li>
+<li>час: <code>millis()</code>, <code>micros()</code>, <code>delay()</code>;</li>
+<li>об'єкт <code>Serial</code> для логів;</li>
+<li>типи <code>uint8_t</code>, <code>uint32_t</code> і константи <code>HIGH</code>, <code>LOW</code>, <code>INPUT_PULLUP</code>.</li>
+</ul>
+<p>Без цього рядка <code>pinMode(...)</code> дасть помилку компіляції «not declared» — як у C# без потрібного <code>using</code>.</p>
+
+<h3>Де ж тоді <code>main()</code>?</h3>
+<p>У звичайній програмі на C++ усе починається з <code>main()</code>. Вона є і тут, просто захована всередині фреймворку. Спрощено:</p>
+<pre><code><span class="k">int</span> main() {
+  init();          <span class="c">// налаштувати чип: тактування, таймери, USB</span>
+  setup();         <span class="c">// ВАША функція — один раз</span>
+  <span class="k">for</span> (;;) {       <span class="c">// нескінченний цикл</span>
+    loop();        <span class="c">// ВАША функція — знову і знову</span>
+  }
+}</code></pre>
+<p>Як у Unity: ігровий цикл належить рушію, а ви пишете лише <code>Start</code> і <code>Update</code>. На ESP32 замість <code>main()</code> є <code>app_main()</code>, який запускає цей цикл окремою задачею FreeRTOS, але суть та сама.</p>
+
+<h3>Як збирається прошивка</h3>
+<ol>
+<li>PlatformIO бере ваші <code>.cpp</code> і вихідний код ядра Arduino.</li>
+<li>Усе це компілює звичайний компілятор C++ (GCC): для ESP32-C3 — <code>riscv32-esp-elf-g++</code>, для STM32 — <code>arm-none-eabi-g++</code>.</li>
+<li>Виходить один файл прошивки <code>firmware.bin</code>.</li>
+</ol>
+<p>Тобто це повноцінний C++: класи, <code>enum class</code>, <code>constexpr</code>, посилання, шаблони. У прошивці проєкту ми все це використовуємо.</p>
+
+<h3>Навіщо Arduino, якщо можна писати напряму?</h3>
+<p>«Напряму» — це через бібліотеки виробника чипа. Ось як увімкнути один пін у трьох варіантах:</p>
+<div class="grid-2">
+<div>
+<p><b>Arduino</b> — однаково на ESP32 і STM32:</p>
+<pre><code>pinMode(<span class="n">10</span>, OUTPUT);
+digitalWrite(<span class="n">10</span>, HIGH);</code></pre>
+<p><b>ESP-IDF</b> — лише ESP32:</p>
+<pre><code>gpio_reset_pin(GPIO_NUM_10);
+gpio_set_direction(GPIO_NUM_10, GPIO_MODE_OUTPUT);
+gpio_set_level(GPIO_NUM_10, <span class="n">1</span>);</code></pre>
+</div>
+<div>
+<p><b>STM32 HAL</b> — лише STM32, пін PA8:</p>
+<pre><code>__HAL_RCC_GPIOA_CLK_ENABLE();
+GPIO_InitTypeDef g = {<span class="n">0</span>};
+g.Pin  = GPIO_PIN_8;
+g.Mode = GPIO_MODE_OUTPUT_PP;
+HAL_GPIO_Init(GPIOA, &amp;g);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);</code></pre>
+</div>
+</div>
+<div class="table-wrap"><table>
+<tr><th>Плюси Arduino</th><th>Мінуси Arduino</th></tr>
+<tr><td>Один API для різних чипів: наш проєкт майже без змін збирається і на ESP32-C3, і на STM32F411</td><td>Частина деталей схована — менше контролю над залізом</td></tr>
+<tr><td>Тисячі готових бібліотек: BH1750, VL53L0X, U8g2</td><td>Прошивка трохи більша й повільніша, ніж «вручну»</td></tr>
+<tr><td>Менше коду на старті: спершу вчите логіку, а не регістри</td><td>Складніше зрозуміти, що відбувається «під капотом»</td></tr>
+</table></div>
+<p>Тому після проєкту в плані навчання є крок: переписати те саме на STM32 HAL або ESP-IDF (див. <a href="07-stm32.html">розділ 07</a>).</p>
+
+<details class="quiz"><summary>А чому в Arduino IDE файли <code>.ino</code> і там не пишуть <code>#include &lt;Arduino.h&gt;</code>?</summary><div>Arduino IDE перед компіляцією сама додає <code>#include &lt;Arduino.h&gt;</code> у файл <code>.ino</code> і перейменовує його на <code>.cpp</code>. Через це здається, що «Arduino — окрема мова». У PlatformIO ми пишемо звичайні <code>.cpp</code>-файли, тому підключаємо <code>Arduino.h</code> явно, як будь-яку іншу бібліотеку.</div></details>
+
+<!-- ===================== Що таке PlatformIO ===================== -->
+<h2 id="platformio" data-short="Що таке PlatformIO">Перед уроками: що таке PlatformIO?</h2>
+<p>Усі уроки збираються командою <code>pio run</code>, а поруч із кодом лежить файл <code>platformio.ini</code>. PlatformIO — це <b>не мова, не компілятор і не фреймворк</b>. Це інструмент, який керує проєктом: сам завантажує потрібний компілятор і бібліотеки, збирає прошивку, прошиває плату і показує лог (Serial Monitor).</p>
+<p>Він складається з двох частин:</p>
+<ul>
+<li><b>PlatformIO Core</b> — програма командного рядка <code>pio</code>, написана на Python. Саме її запускає ШІ-агент.</li>
+<li><b>PlatformIO IDE</b> — розширення VS Code: кнопки ✓ (збірка), → (прошивка), 🔌 (монітор) на нижній панелі. Під капотом вони викликають той самий <code>pio</code>.</li>
+</ul>
+
+<div class="table-wrap"><table>
+<tr><th>C# / .NET / Unity</th><th>PlatformIO</th></tr>
+<tr><td>Файл <code>.csproj</code>: що і як збирати</td><td>Файл <code>platformio.ini</code></td></tr>
+<tr><td>NuGet-пакети в <code>.csproj</code></td><td><code>lib_deps = olikraus/U8g2@^2.35.9</code> (реєстр бібліотек PlatformIO)</td></tr>
+<tr><td><code>dotnet build</code> / <code>dotnet run</code></td><td><code>pio run</code> / <code>pio run -t upload</code></td></tr>
+<tr><td>Конфігурації Debug / Release</td><td>Env-и: <code>[env:l01_blink]</code>, <code>[env:esp32c3]</code>, <code>[env:blackpill]</code></td></tr>
+<tr><td>Build Settings → цільова платформа (Android, iOS…)</td><td><code>platform = …</code> і <code>board = …</code></td></tr>
+<tr><td>Unity Hub завантажує потрібну версію редактора і модулі платформ</td><td>PlatformIO сам завантажує компілятор, ядро Arduino, утиліти прошивки в <code>%USERPROFILE%\.platformio</code></td></tr>
+<tr><td>Папки <code>bin/</code> і <code>obj/</code></td><td>Папка <code>.pio/</code> — результати збірки, її можна видаляти</td></tr>
+<tr><td>Вікно Console в Unity</td><td><code>pio device monitor</code> (Serial Monitor)</td></tr>
+</table></div>
+
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span>Якщо Arduino — це «рушій» з API, то PlatformIO — це Unity Hub + Package Manager + кнопка Build&nbsp;and&nbsp;Run в одному. Сам по собі він не знає, як мигати світлодіодом; він знає, де взяти все потрібне і як це зібрати.</div>
+
+<h3>Хто за що відповідає</h3>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 760 300" role="img" aria-label="Шари прошивки: ваш код, бібліотеки, фреймворк, платформа, плата; PlatformIO збирає їх за описом у platformio.ini">
+  <defs><marker id="pio-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+  <rect x="20" y="20"  width="500" height="44" rx="8" class="d-info"/>
+  <text x="36" y="47" class="d-tb">Ваш код</text><text x="160" y="47" class="d-t">src/01_blink/main.cpp</text><text x="505" y="47" text-anchor="end" class="d-tm">build_src_filter</text>
+  <rect x="20" y="74"  width="500" height="44" rx="8" class="d-box"/>
+  <text x="36" y="101" class="d-tb">Бібліотеки</text><text x="160" y="101" class="d-t">U8g2, BH1750, VL53L0X</text><text x="505" y="101" text-anchor="end" class="d-tm">lib_deps</text>
+  <rect x="20" y="128" width="500" height="44" rx="8" class="d-box"/>
+  <text x="36" y="155" class="d-tb">Фреймворк</text><text x="160" y="155" class="d-t">Arduino (або ESP-IDF, STM32Cube)</text><text x="505" y="155" text-anchor="end" class="d-tm">framework</text>
+  <rect x="20" y="182" width="500" height="44" rx="8" class="d-box"/>
+  <text x="36" y="209" class="d-tb">Платформа</text><text x="160" y="209" class="d-t">компілятор GCC + esptool / dfu-util</text><text x="505" y="209" text-anchor="end" class="d-tm">platform</text>
+  <rect x="20" y="236" width="500" height="44" rx="8" class="d-warn"/>
+  <text x="36" y="263" class="d-tb">Плата</text><text x="160" y="263" class="d-t">ESP32-C3 Super Mini / Black Pill</text><text x="505" y="263" text-anchor="end" class="d-tm">board</text>
+  <path d="M528 20 H538 V280 H528" class="d-line"/>
+  <path d="M538 150 H556" class="d-arrow" marker-end="url(#pio-arr)"/>
+  <rect x="560" y="20" width="185" height="260" rx="10" class="d-acc"/>
+  <text x="652" y="52" text-anchor="middle" class="d-tb">PlatformIO</text>
+  <text x="652" y="76" text-anchor="middle" class="d-ts">читає platformio.ini</text>
+  <text x="652" y="108" text-anchor="middle" class="d-t">1. завантажує</text>
+  <text x="652" y="126" text-anchor="middle" class="d-ts">платформу і бібліотеки</text>
+  <text x="652" y="156" text-anchor="middle" class="d-t">2. компілює і лінкує</text>
+  <text x="652" y="174" text-anchor="middle" class="d-ts">→ firmware.bin</text>
+  <text x="652" y="204" text-anchor="middle" class="d-t">3. прошиває плату</text>
+  <text x="652" y="234" text-anchor="middle" class="d-t">4. показує лог</text>
+  <text x="652" y="252" text-anchor="middle" class="d-ts">Serial Monitor</text>
+</svg>
+</div>
+<figcaption>Праворуч у кожному шарі — рядок <code>platformio.ini</code>, який його описує.</figcaption>
+</figure>
+
+<h3>Що відбувається при <code>pio run -e l01_blink</code></h3>
+<ol>
+<li>PlatformIO читає <code>platformio.ini</code> і бере секцію <code>[env:l01_blink]</code> разом зі спільною <code>[env]</code>.</li>
+<li>Якщо платформи й компілятора ще немає — завантажує їх. Перший раз це довго, далі все береться з кешу.</li>
+<li>Завантажує бібліотеки з <code>lib_deps</code> у <code>.pio/libdeps/&lt;env&gt;/</code>.</li>
+<li>Компілює ваш код, ядро Arduino і бібліотеки компілятором GCC (для ESP32-C3 — <code>riscv32-esp-elf-g++</code>).</li>
+<li>Лінкує все в <code>.pio/build/&lt;env&gt;/firmware.elf</code> і <code>firmware.bin</code>.</li>
+<li>З <code>-t upload</code> — прошиває плату: ESP32 через esptool, STM32 через dfu-util або ST-Link.</li>
+</ol>
+
+<h3>Структура проєкту</h3>
+<div class="table-wrap"><table>
+<tr><th>Що</th><th>Навіщо</th><th>Аналог у C#</th></tr>
+<tr><td><code>platformio.ini</code></td><td>опис проєкту: плати, env-и, бібліотеки, прапори</td><td><code>.csproj</code></td></tr>
+<tr><td><code>src/</code></td><td>ваш код (<code>.cpp</code>, <code>.h</code>)</td><td>файли <code>.cs</code></td></tr>
+<tr><td><code>include/</code>, <code>lib/</code></td><td>спільні заголовки і власні локальні бібліотеки (у нас не використовуються)</td><td>окремі проєкти-бібліотеки в solution</td></tr>
+<tr><td><code>.pio/</code></td><td>результати збірки і завантажені бібліотеки цього проєкту</td><td><code>bin/</code>, <code>obj/</code></td></tr>
+<tr><td><code>%USERPROFILE%\.platformio</code></td><td>спільний кеш компіляторів і платформ для всіх проєктів</td><td><code>%USERPROFILE%\.nuget\packages</code></td></tr>
+</table></div>
+
+<h3>Як виглядає <code>platformio.ini</code></h3>
+<pre><code><span class="c">; спільне для всіх уроків</span>
+[env]
+platform  = platformio/espressif32   <span class="c">; компілятор + ядро для чипів ESP32</span>
+board     = esp32-c3-devkitm-1       <span class="c">; опис плати</span>
+framework = arduino                  <span class="c">; API: setup/loop, digitalWrite…</span>
+monitor_speed = <span class="n">115200</span>                <span class="c">; як у Serial.begin(115200)</span>
+
+<span class="c">; один урок = один env</span>
+[env:l07_oled]
+build_src_filter = +&lt;07_oled/&gt;       <span class="c">; компілювати лише цю папку</span>
+lib_deps = olikraus/U8g2@^2.35.9     <span class="c">; бібліотека дисплея</span></code></pre>
+<p>Повна версія з поясненням кожного рядка — у <code>lessons/platformio.ini</code> і <code>firmware/platformio.ini</code>.</p>
+
+<h3>Основні команди</h3>
+<div class="table-wrap"><table>
+<tr><th>Команда</th><th>Що робить</th></tr>
+<tr><td><code>pio run -e l01_blink</code></td><td>зібрати урок</td></tr>
+<tr><td><code>pio run -e l01_blink -t upload</code></td><td>зібрати й прошити</td></tr>
+<tr><td><code>pio device monitor -b 115200</code></td><td>відкрити лог; вихід — <kbd>Ctrl</kbd>+<kbd>C</kbd></td></tr>
+<tr><td><code>pio device list</code></td><td>показати підключені COM-порти</td></tr>
+<tr><td><code>pio run -e l01_blink -t clean</code></td><td>видалити результати збірки цього env</td></tr>
+<tr><td><code>pio pkg update</code></td><td>оновити платформи й бібліотеки</td></tr>
+</table></div>
+
+<h3>Порівняння з іншими інструментами</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>PlatformIO</th><th>Arduino IDE 2</th><th>ESP-IDF</th><th>STM32CubeIDE</th></tr>
+<tr><td><b>Що це</b></td><td>менеджер проєктів і збірки (CLI + розширення VS Code)</td><td>проста IDE для скетчів <code>.ino</code></td><td>офіційний інструмент Espressif (<code>idf.py</code> + CMake)</td><td>офіційна IDE від ST (Eclipse + CubeMX + HAL)</td></tr>
+<tr><td><b>Чипи</b></td><td>ESP32, STM32 і сотні інших плат</td><td>усі, для яких є «ядро» Arduino</td><td>лише ESP32</td><td>лише STM32</td></tr>
+<tr><td><b>Фреймворки</b></td><td>Arduino, ESP-IDF, STM32Cube та інші</td><td>лише Arduino</td><td>ESP-IDF</td><td>HAL / LL</td></tr>
+<tr><td><b>Версії бібліотек</b></td><td>записані в <code>platformio.ini</code>, однакові на будь-якому ПК</td><td>спільні для всіх скетчів, у проєкті не зафіксовані</td><td>компоненти в проєкті</td><td>генеруються CubeMX у проєкт</td></tr>
+<tr><td><b>Кілька плат в одному проєкті</b></td><td>так, через env-и</td><td>плата обирається в меню IDE</td><td>ні</td><td>ні</td></tr>
+<tr><td><b>Командний рядок для ШІ-агента</b></td><td><code>pio</code> — повноцінний</td><td>є окрема <code>arduino-cli</code></td><td><code>idf.py</code> — повноцінний</td><td>обмежено, розрахована на GUI</td></tr>
+<tr><td><b>Поріг входу</b></td><td>середній</td><td>найнижчий</td><td>високий</td><td>високий</td></tr>
+</table></div>
+
+<h3>Чому в цьому курсі PlatformIO</h3>
+<ul>
+<li><b>Один проєкт для двох чипів:</b> прошивка збирається для ESP32-C3 і STM32F411 з того самого коду — різниця лише в env.</li>
+<li><b>Відтворюваність:</b> платформа і версії бібліотек записані у файлі, тож у вас, в агента і в Wokwi збирається одне й те саме.</li>
+<li><b>Замкнений цикл з ШІ:</b> агент сам запускає <code>pio run</code>, читає помилки компілятора і виправляє код (див. <a href="02-ai-tools.html">розділ 02</a>).</li>
+<li><b>Шлях росту:</b> пізніше можна змінити <code>framework = arduino</code> на <code>espidf</code> чи <code>stm32cube</code> і лишитися в тому ж інструменті.</li>
+</ul>
+<p>Як встановити PlatformIO і що робити, якщо збірка падає на Windows, — у <a href="03-software.html#install">розділі 03</a>.</p>
+
+<details class="quiz"><summary>Що буде, якщо видалити папку <code>.pio</code>?</summary><div>Нічого страшного: це лише результати збірки і завантажені бібліотеки. Наступна команда <code>pio run</code> усе відновить, просто збірка триватиме довше. Компілятори при цьому не зникнуть — вони лежать у спільному кеші <code>%USERPROFILE%\.platformio</code>.</div></details>
+<details class="quiz"><summary>Чи можна працювати з PlatformIO без VS Code?</summary><div>Так. VS Code з розширенням — лише зручні кнопки. Усе те саме робить команда <code>pio</code> у будь-якому терміналі; саме так нею користується ШІ-агент.</div></details>
+
+<!-- ========================= 01 ========================= -->
+<h2 id="l01" data-short="01 Blink">Урок 01 — Blink без <code>delay()</code></h2>
+<p><b>Мета:</b> зрозуміти <code>setup()</code>/<code>loop()</code>, <code>millis()</code>, вивід у Serial Monitor. <b>Схема:</b> нічого не потрібно, використовуємо вбудований LED на GPIO8.</p>
+<p>У повному файлі уроку перший рядок — <code>#include &lt;Arduino.h&gt;</code> (чому — див. <a href="#arduino-cpp">блок вище</a>). Нижче — головна частина коду.</p>
+<pre><code><span class="k">constexpr int</span> PIN_LED = <span class="n">8</span>;            <span class="c">// вбудований LED (active-low: LOW = світить)</span>
+<span class="k">uint32_t</span> lastToggle = <span class="n">0</span>;
+<span class="k">bool</span> ledOn = <span class="k">false</span>;
+
+<span class="k">void</span> setup() {                       <span class="c">// ≈ Start()</span>
+  Serial.begin(<span class="n">115200</span>);
+  pinMode(PIN_LED, OUTPUT);
+}
+
+<span class="k">void</span> loop() {                        <span class="c">// ≈ Update()</span>
+  <span class="k">uint32_t</span> now = millis();
+  <span class="k">if</span> (now - lastToggle &gt;= <span class="n">500</span>) {
+    lastToggle = now;
+    ledOn = !ledOn;
+    digitalWrite(PIN_LED, ledOn ? LOW : HIGH);
+    Serial.printf(<span class="s">"[blink] led=%d\n"</span>, ledOn);
+  }
+}</code></pre>
+<details class="quiz"><summary>Чому <code>now - lastToggle &gt;= 500</code>, а не <code>now &gt;= lastToggle + 500</code>?</summary><div><code>millis()</code> має тип <code>uint32_t</code> і через ~49.7 доби переповнюється до 0. Різниця беззнакових чисел залишається правильною навіть після переповнення, а сума — ні: таймер «завис» би.</div></details>
+<p><b>Зміни сам:</b> «серцебиття» — два короткі спалахи, потім пауза 1 с. Підказка: масив тривалостей і індекс кроку.</p>
+
+<!-- ========================= 02 ========================= -->
+<h2 id="l02" data-short="02 Кнопки">Урок 02 — Кнопки, pull-up і брязкіт контактів</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 320 260" role="img" aria-label="Кнопка з внутрішнім pull-up резистором">
+  <rect x="150" y="20" width="160" height="220" rx="10" class="d-box2" stroke-dasharray="6 4"/>
+  <text x="230" y="40" text-anchor="middle" class="d-ts">всередині ESP32</text>
+  <path d="M260 60 V80" class="w-pwr"/><text x="268" y="68" class="d-ts" style="fill:var(--w-pwr)">3.3 В</text>
+  <rect x="252" y="80" width="16" height="50" rx="3" class="d-box"/><text x="276" y="110" class="d-ts">~45k</text>
+  <path d="M260 130 V160 H150" class="w-sig"/>
+  <circle cx="260" cy="160" r="4" class="f-sig"/>
+  <path d="M260 160 H290" class="w-sig"/><text x="230" y="190" class="d-ts">→ digitalRead()</text>
+  <circle cx="150" cy="160" r="6" class="f-sig"/><text x="160" y="152" class="d-tm">GPIO4</text>
+  <path d="M150 160 H110" class="w-sig"/>
+  <path d="M110 160 V150 M110 150 L80 132" class="d-line" style="stroke-width:2.4"/>
+  <path d="M70 128 H94" class="d-line"/><path d="M82 128 V118" class="d-line"/>
+  <path d="M80 160 V200" class="w-gnd"/><path d="M80 160 H90" class="d-line" style="stroke-width:2.4"/>
+  <text x="20" y="128" class="d-t">кнопка</text>
+  <path d="M60 200 H100 M66 208 H94 M74 216 H86" class="w-gnd"/><text x="20" y="214" class="d-t">GND</text>
+</svg>
+<figcaption>Відпущена → резистор «тягне» пін до 3.3 В (HIGH). Натиснута → пін з'єднано з GND (LOW).</figcaption>
+</figure>
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 320 260" role="img" aria-label="Брязкіт контактів кнопки на осцилограмі">
+  <text x="20" y="28" class="d-tb">Що бачить пін при натисканні</text>
+  <path d="M20 70 H90 V170 H96 V70 H102 V170 H110 V90 H114 V170 H300" class="w-sig"/>
+  <text x="20" y="62" class="d-ts">HIGH</text><text x="20" y="190" class="d-ts">LOW</text>
+  <path d="M90 200 H125" class="d-arrow"/><text x="90" y="216" class="d-ta">брязкіт ≈ 1–10 мс</text>
+  <path d="M90 230 H160" class="d-line" stroke-dasharray="3 3"/><text x="165" y="234" class="d-ts">чекаємо 30 мс стабільності</text>
+</svg>
+<figcaption>Механічний контакт «стрибає» кілька мілісекунд. Без антибрязкоту одне натискання = кілька подій.</figcaption>
+</figure>
+</div>
+<p><b>Схема:</b> кнопка між GPIO4 і GND. Зовнішній резистор не потрібен — <code>pinMode(PIN, INPUT_PULLUP)</code> вмикає внутрішній.</p>
+<pre><code><span class="k">bool</span> raw = digitalRead(PIN_BTN) == LOW;          <span class="c">// натиснута = LOW</span>
+<span class="k">if</span> (raw != rawPrev) { rawPrev = raw; changedAt = now; }
+<span class="k">if</span> (stable != raw &amp;&amp; now - changedAt &gt;= <span class="n">30</span>) {   <span class="c">// стабільно 30 мс</span>
+  stable = raw;
+  <span class="k">if</span> (stable) pressedAt = now;
+  <span class="k">else if</span> (!longSent) Serial.println(<span class="s">"[btn] SHORT"</span>);
+}
+<span class="k">if</span> (stable &amp;&amp; !longSent &amp;&amp; now - pressedAt &gt;= <span class="n">700</span>) { longSent = <span class="k">true</span>; Serial.println(<span class="s">"[btn] LONG"</span>); }</code></pre>
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span>Це ваш власний <code>Input.GetKeyDown</code> і «hold»-взаємодія з New Input System, тільки ви самі опитуєте «клавішу» кожен кадр.</div>
+<p><b>Зміни сам:</b> поставте <code>DEBOUNCE_MS = 0</code> — скільки «SHORT» на одне натискання? Потім оформіть логіку в клас і порівняйте з <code>firmware/src/Buttons.cpp</code>.</p>
+
+<!-- ========================= 03 ========================= -->
+<h2 id="l03" data-short="03 ШІМ + MOSFET">Урок 03 — ШІМ і MOSFET: керуємо яскравістю стрічки</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 760 250" role="img" aria-label="ШІМ із заповненням 10, 50 і 90 відсотків">
+  <text x="20" y="30" class="d-tb">Заповнення (duty cycle) = частка часу «увімкнено»</text>
+  <g>
+    <text x="20" y="80" class="d-t">10 %</text>
+    <path d="M80 90 V60 H95 V90 H230 V60 H245 V90 H380 V60 H395 V90 H530 V60 H545 V90 H680 V60 H695 V90 H740" class="w-pwm"/>
+    <text x="20" y="145" class="d-t">50 %</text>
+    <path d="M80 155 V125 H155 V155 H230 V125 H305 V155 H380 V125 H455 V155 H530 V125 H605 V155 H680 V125 H740" class="w-pwm"/>
+    <text x="20" y="210" class="d-t">90 %</text>
+    <path d="M80 220 V190 H215 V220 H230 V190 H365 V220 H380 V190 H515 V220 H530 V190 H665 V220 H680 V190 H740" class="w-pwm"/>
+  </g>
+  <path d="M80 238 H230" class="d-arrow"/><text x="100" y="250" class="d-ts">період = 50 мкс (20 кГц)</text>
+</svg>
+</div>
+<figcaption>Око не бачить 20 000 перемикань на секунду і сприймає середню яскравість.</figcaption>
+</figure>
+<p><b>Схема:</b> ключ на AO3400 — див. <a href="05-hardware.html#mosfet">розділ 05</a>. Без стрічки можна взяти звичайний світлодіод з резистором 220 Ом на GPIO10.</p>
+<pre><code><span class="c">// Arduino-ESP32 3.x: канал LEDC прив'язується до піна автоматично</span>
+ledcAttach(<span class="n">10</span>, <span class="n">20000</span>, <span class="n">10</span>);           <span class="c">// пін, частота, роздільність (0..1023)</span>
+<span class="k">float</span> level = <span class="n">0.5f</span>;                      <span class="c">// 50 % «на око»</span>
+<span class="k">float</span> out = powf(level, <span class="n">2.2f</span>);          <span class="c">// гамма-корекція → ~22 % часу</span>
+ledcWrite(<span class="n">10</span>, (<span class="k">uint32_t</span>)(out * <span class="n">1023</span>));</code></pre>
+<details class="quiz"><summary>Навіщо гамма-корекція?</summary><div>Око сприймає яскравість приблизно логарифмічно. Лінійна зміна заповнення виглядає так: стрічка довго «майже на максимумі», а потім різко гасне. <code>pow(x, 2.2)</code> робить зміну рівномірною на око.</div></details>
+<div class="callout danger"><span class="callout-title">Можна спалити</span>Спільна земля БЖ і плати обов'язкова. Не живіть стрічку від піна 5V плати — USB дає лише ~0.5 А.</div>
+<p><b>Зміни сам:</b> <code>useGamma = false</code> — порівняйте на око. Спробуйте частоту 200 Гц і подивіться на стрічку через камеру телефону: з'являться смуги.</p>
+
+<!-- ========================= 04 ========================= -->
+<h2 id="l04" data-short="04 АЦП">Урок 04 — АЦП і фоторезистор</h2>
+<p><b>Мета:</b> перетворити напругу на число, а число — на люкси. <b>Схема:</b> 3V3 → LDR → <b>GPIO0</b> → 10 кОм → GND (див. <a href="05-hardware.html#divider">дільник</a>).</p>
+<pre><code><span class="k">uint32_t</span> mv = analogReadMilliVolts(<span class="n">0</span>);        <span class="c">// калібровані мілівольти</span>
+<span class="k">float</span> v = mv / <span class="n">1000.0f</span>;
+<span class="k">float</span> rLdr = <span class="n">10000</span> * (<span class="n">3.3f</span> - v) / v;          <span class="c">// опір з дільника</span>
+<span class="k">float</span> lux = <span class="n">10</span> * powf(RL10 / rLdr, <span class="n">1</span> / GAMMA);  <span class="c">// модель фоторезистора</span>
+filtered += <span class="n">0.2f</span> * (lux - filtered);            <span class="c">// згладжування ≈ Mathf.Lerp</span></code></pre>
+<div class="callout warn"><span class="callout-title">Фоторезистор — не люксметр</span>Параметри <code>RL10</code> і <code>GAMMA</code> у різних партій відрізняються в рази. Тому аналоговий датчик дає <b>приблизні</b> люкси, і поріг краще підбирати «на місці». Для точних значень є BH1750 (урок 06).</div>
+<p><b>Зміни сам:</b> закрийте датчик пальцем, посвітіть ліхтариком і запишіть значення. Після уроку 06 підберіть <code>RL10</code>/<code>GAMMA</code> так, щоб показники зблизилися з BH1750 — це і є калібрування.</p>
+
+<!-- ========================= 05 ========================= -->
+<h2 id="l05" data-short="05 PIR">Урок 05 — PIR-датчик руху HC-SR501</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 320 230" role="img" aria-label="Плата HC-SR501 з потенціометрами і перемичкою">
+  <rect x="40" y="20" width="240" height="160" rx="8" class="d-box2"/>
+  <text x="160" y="40" text-anchor="middle" class="d-ts">HC-SR501, вид знизу</text>
+  <circle cx="90" cy="90" r="18" class="d-warn"/><path d="M90 76 V104" class="d-line"/><text x="90" y="128" text-anchor="middle" class="d-t">Sx</text><text x="90" y="144" text-anchor="middle" class="d-ts">дальність</text>
+  <circle cx="160" cy="90" r="18" class="d-warn"/><path d="M146 90 H174" class="d-line"/><text x="160" y="128" text-anchor="middle" class="d-t">Tx</text><text x="160" y="144" text-anchor="middle" class="d-ts">час → мін.</text>
+  <rect x="215" y="70" width="40" height="18" rx="3" class="d-acc"/><text x="235" y="104" text-anchor="middle" class="d-t">H / L</text><text x="235" y="120" text-anchor="middle" class="d-ts">→ H</text>
+  <g class="d-tm"><text x="105" y="205">VCC</text><text x="148" y="205">OUT</text><text x="190" y="205">GND</text></g>
+  <circle cx="117" cy="180" r="5" class="f-pwr"/><circle cx="160" cy="180" r="5" class="f-sig"/><circle cx="202" cy="180" r="5" class="f-gnd"/>
+  <text x="117" y="224" text-anchor="middle" class="d-ts">5 В</text><text x="160" y="224" text-anchor="middle" class="d-ts">GPIO3</text><text x="202" y="224" text-anchor="middle" class="d-ts">GND</text>
+</svg>
+<figcaption>Розташування елементів буває різним — орієнтуйтеся на підписи на платі.</figcaption>
+</figure>
+<div>
+<ul>
+  <li><b>Живлення 5 В</b>, а вихід — 3.3 В: можна напряму на GPIO3.</li>
+  <li><b>Tx</b> (час) — на мінімум (~3 с). Скільки світити, вирішує прошивка.</li>
+  <li><b>Перемичка H</b> — повторний тригер: поки людина рухається, сигнал не падає.</li>
+  <li><b>Sx</b> — апаратна чутливість (дальність до ~7 м).</li>
+  <li>Після ввімкнення модулю потрібно 30–60 с на «прогрів»: у цей час можливі хибні спрацювання.</li>
+</ul>
+<div class="callout tip"><span class="callout-title">Програмна чутливість</span>У проєкті є параметр «Фільтр руху»: сигнал має триматися N мс, щоб зарахуватися. Це відсікає короткі хибні імпульси.</div>
+</div>
+</div>
+<p><b>Зміни сам:</b> виміряйте мінімальну тривалість HIGH при Tx на мінімумі. Додайте фільтр «HIGH довше N мс».</p>
+
+<!-- ========================= 06 ========================= -->
+<h2 id="l06" data-short="06 I2C + BH1750">Урок 06 — шина I2C, сканер і BH1750</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 760 240" role="img" aria-label="Шина I2C з трьома пристроями">
+  <rect x="20" y="70" width="140" height="100" rx="10" class="d-acc"/>
+  <text x="90" y="105" text-anchor="middle" class="d-tb">ESP32-C3</text><text x="90" y="125" text-anchor="middle" class="d-ts">ведучий (master)</text>
+  <text x="90" y="150" text-anchor="middle" class="d-tm">SDA=6 SCL=7</text>
+  <path d="M160 100 H740" class="w-sda"/><text x="700" y="94" class="d-ts" style="fill:var(--w-sda)">SDA</text>
+  <path d="M160 140 H740" class="w-scl"/><text x="700" y="156" class="d-ts" style="fill:var(--w-scl)">SCL</text>
+  <g>
+    <path d="M260 100 V40 M275 140 V40" class="d-line"/>
+    <rect x="215" y="10" width="110" height="34" rx="6" class="d-box2"/><text x="270" y="32" text-anchor="middle" class="d-t">BH1750 · 0x23</text>
+    <path d="M430 100 V40 M445 140 V40" class="d-line"/>
+    <rect x="385" y="10" width="110" height="34" rx="6" class="d-box2"/><text x="440" y="32" text-anchor="middle" class="d-t">OLED · 0x3C</text>
+    <path d="M600 100 V200 M615 140 V200" class="d-line"/>
+    <rect x="550" y="196" width="120" height="34" rx="6" class="d-warn"/><text x="610" y="218" text-anchor="middle" class="d-t">VL53L0X · 0x29</text>
+  </g>
+  <circle cx="260" cy="100" r="4" class="f-sda"/><circle cx="275" cy="140" r="4" class="f-scl"/>
+  <circle cx="430" cy="100" r="4" class="f-sda"/><circle cx="445" cy="140" r="4" class="f-scl"/>
+  <circle cx="600" cy="100" r="4" class="f-sda"/><circle cx="615" cy="140" r="4" class="f-scl"/>
+  <text x="200" y="200" class="d-ts">Два дроти — багато пристроїв. Кожен відповідає лише на свою адресу.</text>
+  <text x="200" y="218" class="d-ts">Підтяжки SDA/SCL до 3.3 В вже є на модулях.</text>
+</svg>
+</div>
+<figcaption>Шина I2C: ведучий звертається до пристрою за 7-бітною адресою.</figcaption>
+</figure>
+<pre><code>Wire.begin(<span class="n">6</span>, <span class="n">7</span>);                                <span class="c">// SDA, SCL</span>
+<span class="k">for</span> (<span class="k">uint8_t</span> a = <span class="n">1</span>; a &lt; <span class="n">127</span>; a++) {
+  Wire.beginTransmission(a);
+  <span class="k">if</span> (Wire.endTransmission() == <span class="n">0</span>)            <span class="c">// 0 = пристрій відповів (ACK)</span>
+    Serial.printf(<span class="s">"[i2c] found 0x%02X\n"</span>, a);
+}
+BH1750 bh;  bh.begin();  <span class="k">float</span> lux = bh.readLightLevel();</code></pre>
+<details class="quiz"><summary>Сканер нічого не знаходить. Що перевірити?</summary><div>1) Живлення модуля (3V3 і GND). 2) Чи не переплутані SDA і SCL. 3) Чи збігаються піни у <code>Wire.begin()</code> з реальними дротами. 4) Чи є спільна земля. 5) Контакт у макетці: поворушіть дроти.</div></details>
+<p><b>Зміни сам:</b> підключіть одночасно BH1750 і OLED — сканер має знайти <code>0x23</code> і <code>0x3C</code>.</p>
+
+<!-- ========================= 07 ========================= -->
+<h2 id="l07" data-short="07 OLED">Урок 07 — OLED SSD1306 і бібліотека U8g2</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 300 180" role="img" aria-label="Зони жовто-синього OLED-дисплея">
+  <rect x="10" y="10" width="280" height="160" rx="8" fill="#000"/>
+  <rect x="22" y="22" width="256" height="32" style="fill:var(--oled-yellow)" opacity=".25"/>
+  <rect x="22" y="54" width="256" height="104" style="fill:var(--oled-blue)" opacity=".18"/>
+  <text x="30" y="44" font-family="monospace" font-size="15" style="fill:var(--oled-yellow)">АВТО       80%</text>
+  <text x="30" y="80" font-family="monospace" font-size="13" style="fill:var(--oled-blue)">Світло 8.4 lx   BH</text>
+  <text x="30" y="104" font-family="monospace" font-size="13" style="fill:var(--oled-blue)">Рух: так  *Дист 54</text>
+  <text x="30" y="132" font-family="monospace" font-size="13" style="fill:var(--oled-blue)">Утримання 12s</text>
+  <text x="284" y="44" text-anchor="end" font-size="10" fill="#aaa">y 0–15</text>
+  <text x="284" y="152" text-anchor="end" font-size="10" fill="#aaa">y 16–63</text>
+</svg>
+<figcaption>Верхні 16 рядків пікселів світяться жовтим, решта — синім. Колір задає скло, а не програма.</figcaption>
+</figure>
+<div>
+<pre><code>U8G2_SSD1306_128X64_NONAME_F_HW_I2C
+    oled(U8G2_R0, U8X8_PIN_NONE, <span class="n">7</span>, <span class="n">6</span>);
+
+oled.begin();
+oled.enableUTF8Print();
+oled.setFont(u8g2_font_6x12_t_cyrillic);
+
+oled.clearBuffer();               <span class="c">// «очистити кадр»</span>
+oled.setCursor(<span class="n">0</span>, <span class="n">12</span>);
+oled.print(<span class="s">"Привіт!"</span>);
+oled.sendBuffer();                <span class="c">// «показати кадр»</span></code></pre>
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span><code>clearBuffer()</code> → малювання → <code>sendBuffer()</code> — це один кадр рендера. Буфер займає 1 КБ RAM (128×64 біт).</div>
+</div>
+</div>
+<p><b>Зміни сам:</b> намалюйте іконку лампочки з <code>drawCircle</code>/<code>drawLine</code> і виведіть «ВИМК/УВІМК».</p>
+
+<!-- ========================= 08 ========================= -->
+<h2 id="l08" data-short="08 Дистанція">Урок 08 — датчик дистанції</h2>
+<div class="table-wrap"><table>
+<tr><th></th><th>VL53L0X <span class="pill ok">рекомендовано</span></th><th>HC-SR04P / RCWL-1601</th></tr>
+<tr><td>Принцип</td><td>лазер, час прольоту (ToF)</td><td>ультразвук, ехо</td></tr>
+<tr><td>Інтерфейс</td><td>I2C 0x29 — ті самі 2 дроти</td><td>TRIG + ECHO (2 окремі піни)</td></tr>
+<tr><td>Дальність</td><td>до ~1.2 м (L1X — до 4 м)</td><td>до ~4 м</td></tr>
+<tr><td>Живлення</td><td>3.3 В</td><td>3.3 В (звичайний HC-SR04 — 5 В, ECHO через дільник)</td></tr>
+<tr><td>Особливості</td><td>вузький промінь, не бачить скла</td><td>широкий конус, «бачить» м'які предмети гірше</td></tr>
+</table></div>
+<pre><code><span class="c">// VL53L0X (бібліотека Pololu)</span>
+tof.setTimeout(<span class="n">200</span>);
+tof.init();
+tof.startContinuous(<span class="n">50</span>);                       <span class="c">// вимірювання кожні 50 мс</span>
+<span class="k">uint16_t</span> mm = tof.readRangeContinuousMillimeters();
+
+<span class="c">// HC-SR04: звук іде туди й назад ≈ 58 мкс на 1 см</span>
+<span class="k">unsigned long</span> us = pulseIn(ECHO, HIGH, <span class="n">25000</span>);
+<span class="k">unsigned</span> cm = us / <span class="n">58</span>;</code></pre>
+<p><b>Зміни сам:</b> увімкніть LED, коли об'єкт ближче 50 см. Як зробити, щоб на межі він не мерехтів? (Підказка: гістерезис, як у проєкті для світла.)</p>
+
+<h2 id="done">Після уроків</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="l1" data-key="l1"><label for="l1">01 Blink</label></li>
+  <li><input type="checkbox" id="l2" data-key="l2"><label for="l2">02 Кнопки</label></li>
+  <li><input type="checkbox" id="l3" data-key="l3"><label for="l3">03 ШІМ + MOSFET</label></li>
+  <li><input type="checkbox" id="l4" data-key="l4"><label for="l4">04 АЦП</label></li>
+  <li><input type="checkbox" id="l5" data-key="l5"><label for="l5">05 PIR</label></li>
+  <li><input type="checkbox" id="l6" data-key="l6"><label for="l6">06 I2C + BH1750</label></li>
+  <li><input type="checkbox" id="l7" data-key="l7"><label for="l7">07 OLED</label></li>
+  <li><input type="checkbox" id="l8" data-key="l8"><label for="l8">08 Дистанція</label></li>
+</ul>
+<p>Усе зібрано? Переходьте до <a href="06-project.html">проєкту</a>: схема на макетці вже майже готова.</p>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

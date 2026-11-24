@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Компоненти і схема</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 05</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>05. Компоненти, закупівля, схема підключення</h1>
+<p class="lead">Що у вас уже є, для чого кожна деталь, чого бракує, і як усе з'єднати так, щоб нічого не згоріло.</p>
+
+<div class="callout danger"><span class="callout-title">Перш ніж вмикати</span>ESP32-C3 і STM32 працюють від <b>3.3 В</b>. Подача 5 В на GPIO ESP32-C3 може вбити чип. Земля (GND) блока живлення, плати і всіх модулів має бути <b>спільною</b>.</div>
+
+<h2 id="have">Що вже є і для чого воно</h2>
+<div class="table-wrap"><table>
+<tr><th>Компонент</th><th>Роль у проєкті</th><th>Важливо знати</th></tr>
+<tr><td><b>ESP32-C3 Super Mini</b></td><td>основний МК (етапи 0–3)</td><td>RISC-V 160 МГц, Wi-Fi/BLE, логіка 3.3 В, USB вбудований. Strapping-піни GPIO2/8/9; GPIO9 = кнопка BOOT; GPIO8 = синій LED (active-low)</td></tr>
+<tr><td><b>STM32F411CEU6</b> (Black Pill)</td><td>друга плата (етап 4)</td><td>Cortex-M4F 100 МГц, 512 КБ flash, 3.3 В. Більшість пінів толерантні до 5 В (FT), але не аналогові</td></tr>
+<tr><td><b>GY-302 BH1750FVI</b></td><td><span class="pill ok">основний</span> датчик світла, видає люкси</td><td>I2C, адреса <code>0x23</code> (ADDR на GND/вільний) або <code>0x5C</code>. Живлення 3.3–5 В, на модулі є стабілізатор і підтяжки</td></tr>
+<tr><td><b>TEMT6000</b></td><td>аналоговий датчик світла</td><td>фототранзистор з резистором 10k на модулі, вихід 0…3.3 В; приблизно lux ≈ U(В) × 200</td></tr>
+<tr><td><b>GL5516</b> (фоторезистор)</td><td>урок 04, аналогова альтернатива</td><td>≈ 5–10 кОм при 10 lux, у темряві ≈ 0.5 МОм. Потрібен дільник з 10k</td></tr>
+<tr><td><b>GM5528</b> (20 кОм)</td><td>те саме, для темнішого діапазону</td><td>дільник з 10k–20k</td></tr>
+<tr><td><b>HC-SR501</b> (PIR)</td><td>датчик руху</td><td>живлення <b>5 В</b> (4.5–20 В), вихід <b>3.3 В</b> — можна напряму на GPIO. Потенціометри: Sx — дальність (до ~7 м), Tx — час (від ~3 с). Перемичка H — повторний тригер</td></tr>
+<tr><td><b>OLED 0.96" SSD1306</b></td><td>дисплей меню</td><td>I2C <code>0x3C</code>. Верхні 16 рядків пікселів жовті, решта сині — це фізичні кольори скла</td></tr>
+<tr><td><b>Кнопки SMD 12×7 мм</b></td><td>UP / DOWN / OK / MANUAL</td><td>для макетки потрібна пайка на дроти або плату. Підключення: GPIO ↔ GND, у коді <code>INPUT_PULLUP</code></td></tr>
+<tr><td><b>AO3400</b> (SOT-23, A09T)</td><td>ключ для стрічки</td><td>N-MOSFET 30 В, до ≈ 5.7 А, Rds(on) ≈ 50 мОм при Vgs = 2.5 В — відкривається від 3.3 В. Корпус крихітний: потрібен перехідник SOT-23→DIP</td></tr>
+</table></div>
+
+<h2 id="buy">Чого бракує — список покупок</h2>
+<div class="callout warn"><span class="callout-title">У вашому наборі немає датчика дистанції</span>А він потрібен за ТЗ. Рекомендовано <b>VL53L0X</b> (лазерний ToF, I2C <code>0x29</code>, 3.3 В, до ~1.2 м) або VL53L1X (до 4 м). Він сидить на тій самій шині I2C, що й дисплей та BH1750, тож додаткові піни не потрібні.</div>
+
+<h3>Обов'язково</h3>
+<div class="table-wrap"><table>
+<tr><th>Позиція</th><th>Навіщо</th><th>Примітка</th></tr>
+<tr><td><b>VL53L0X</b> (або VL53L1X)</td><td>дистанція</td><td>альтернатива — HC-SR04P / RCWL-1601 (3.3 В, ультразвук, 2 піни). Звичайний HC-SR04 (5 В) — лише з дільником на ECHO</td></tr>
+<tr><td><b>Блок живлення 5 В</b></td><td>стрічка і вся схема</td><td>струм — див. розрахунок нижче</td></tr>
+<tr><td>DC-гніздо 5.5×2.1 або клемник</td><td>підключення БЖ</td><td></td></tr>
+<tr><td><b>Конденсатор 470–1000 мкФ</b>, 10–16 В</td><td>гасить кидки струму стрічки</td><td>паралельно до живлення стрічки, <b>з дотриманням полярності</b></td></tr>
+<tr><td>Конденсатори 100 нФ (5 шт.)</td><td>фільтр живлення біля модулів</td><td></td></tr>
+<tr><td>Набір резисторів 1/4 Вт</td><td>затвор MOSFET, дільники</td><td>потрібні 100 Ом, 10k, 20k, 100k, 1k + 2k</td></tr>
+<tr><td>Перехідник SOT-23 → DIP (2–3 шт.)</td><td>AO3400 у макетку</td><td>або паяти на шматок плати</td></tr>
+<tr><td>Макетна плата 830 точок + дроти Dupont</td><td>складання</td><td>M-M і M-F</td></tr>
+<tr><td>USB-C кабель <b>з даними</b></td><td>прошивка</td><td></td></tr>
+<tr><td><b>Мультиметр</b></td><td>перевірка напруг</td><td>обов'язковий інструмент</td></tr>
+<tr><td>Паяльник, припій, флюс</td><td>кнопки SMD, AO3400, пін-гребінки</td><td></td></tr>
+</table></div>
+<h3>Дуже бажано</h3>
+<div class="table-wrap"><table>
+<tr><th>Позиція</th><th>Навіщо</th></tr>
+<tr><td><b>ST-Link V2</b></td><td>прошивка і покрокове налагодження STM32</td></tr>
+<tr><td>Діод Шотткі SS34 / 1N5819</td><td>живлення ESP32 від БЖ, коли USB теж підключено</td></tr>
+<tr><td>Логічний аналізатор 8 каналів 24 МГц</td><td>бачити I2C та ШІМ у PulseView</td></tr>
+<tr><td>Макетна плата для пайки (perfboard)</td><td>фінальне складання</td></tr>
+</table></div>
+
+<h2 id="power">Розрахунок живлення</h2>
+<ul>
+  <li>Струм стрічки: <b>I = P(Вт/м) × довжина(м) / 5 В</b>.
+    <ul>
+      <li>SMD2835, 60 LED/м: ≈ 4.8–6 Вт/м → ≈ 1–1.2 А/м.</li>
+      <li>SMD5050, 60 LED/м (5 В): ≈ 10–14 Вт/м → ≈ 2–3 А/м.</li>
+    </ul>
+  </li>
+  <li>Блок живлення: <b>I<sub>БЖ</sub> ≥ I<sub>стрічки</sub> × 1.3 + 0.3 А</b> (запас + електроніка).</li>
+  <li><b>AO3400</b> при 3.3 В на затворі комфортно тримає до <b>~2 А</b>: P = I² × R = 2² × 0.05 = 0.2 Вт, ледь тепло. Більше 2 А — потрібна мідь на платі для охолодження, а понад 3 А — потужніший logic-level MOSFET (наприклад, IRLB8721 у TO-220) або кілька AO3400 паралельно.</li>
+  <li>Стрічки 5 В довші за 2–3 м «просідають» і жовтіють на кінці — подавайте живлення з обох кінців.</li>
+</ul>
+<details class="quiz"><summary>Перевір себе: 1.5 м стрічки SMD2835 (5 Вт/м). Який БЖ і чи впорається AO3400?</summary>
+<div>Струм: 5 × 1.5 / 5 = <b>1.5 А</b>. БЖ: 1.5 × 1.3 + 0.3 ≈ <b>2.3 А</b>, отже беремо 5 В 3 А. AO3400: 1.5² × 0.05 ≈ 0.11 Вт — впорається легко.</div></details>
+
+<h2 id="pinout">Розпіновка ESP32-C3 Super Mini і призначення пінів</h2>
+<figure class="diagram">
+<div class="diagram-scroll wide">
+<svg viewBox="0 0 1000 540" role="img" aria-label="Схема підключення всіх модулів до ESP32-C3 Super Mini">
+  <!-- плата -->
+  <rect x="420" y="40" width="160" height="440" rx="12" class="d-box2"/>
+  <rect x="470" y="22" width="60" height="30" rx="6" class="d-box"/><text x="500" y="42" text-anchor="middle" class="d-ts">USB-C</text>
+  <rect x="460" y="250" width="80" height="80" rx="4" class="d-chip"/>
+  <text x="500" y="285" text-anchor="middle" class="d-tw">ESP32</text><text x="500" y="302" text-anchor="middle" class="d-tw">-C3</text>
+  <text x="500" y="470" text-anchor="middle" class="d-ts">Super Mini (вид зверху)</text>
+  <!-- піни: ліві -->
+  <g class="d-tm">
+    <text x="436" y="104">5V</text><text x="436" y="152">GND</text><text x="436" y="200">3V3</text><text x="436" y="248">4</text>
+    <text x="436" y="296">3</text><text x="436" y="344">2</text><text x="436" y="392">1</text><text x="436" y="440">0</text>
+    <text x="564" y="104" text-anchor="end">5</text><text x="564" y="152" text-anchor="end">6</text><text x="564" y="200" text-anchor="end">7</text><text x="564" y="248" text-anchor="end">8</text>
+    <text x="564" y="296" text-anchor="end">9</text><text x="564" y="344" text-anchor="end">10</text><text x="564" y="392" text-anchor="end">20</text><text x="564" y="440" text-anchor="end">21</text>
+  </g>
+  <g>
+    <circle cx="420" cy="100" r="6" class="f-pwr"/><circle cx="420" cy="148" r="6" class="f-gnd"/><circle cx="420" cy="196" r="6" class="f-pwr"/>
+    <circle cx="420" cy="244" r="6" class="f-sig"/><circle cx="420" cy="292" r="6" class="f-sig"/><circle cx="420" cy="340" r="6" class="f-muted"/>
+    <circle cx="420" cy="388" r="6" class="f-sig"/><circle cx="420" cy="436" r="6" class="f-sig"/>
+    <circle cx="580" cy="100" r="6" class="f-sig"/><circle cx="580" cy="148" r="6" class="f-sda"/><circle cx="580" cy="196" r="6" class="f-scl"/>
+    <circle cx="580" cy="244" r="6" class="f-sig"/><circle cx="580" cy="292" r="6" class="f-muted"/><circle cx="580" cy="340" r="6" class="f-pwm"/>
+    <circle cx="580" cy="388" r="6" class="f-muted"/><circle cx="580" cy="436" r="6" class="f-muted"/>
+  </g>
+  <!-- ліві з'єднання -->
+  <path d="M414 100 H300" class="w-pwr"/><rect x="20" y="78" width="280" height="44" rx="8" class="d-box2"/>
+  <text x="32" y="97" class="d-tb">+5V від БЖ</text><text x="32" y="114" class="d-ts">через діод Шотткі, або лише USB</text>
+  <path d="M414 148 H300" class="w-gnd"/><rect x="20" y="126" width="280" height="44" rx="8" class="d-box2"/>
+  <text x="32" y="145" class="d-tb">GND — спільна</text><text x="32" y="162" class="d-ts">БЖ, стрічка, усі модулі</text>
+  <path d="M414 196 H300" class="w-pwr"/><rect x="20" y="174" width="280" height="44" rx="8" class="d-box2"/>
+  <text x="32" y="193" class="d-tb">3V3 → живлення модулів</text><text x="32" y="210" class="d-ts">BH1750, OLED, VL53L0X, дільник LDR</text>
+  <path d="M414 244 H300" class="w-sig"/><rect x="20" y="222" width="280" height="44" rx="8" class="d-acc"/>
+  <text x="32" y="241" class="d-tb">Кнопка UP → GND</text><text x="32" y="258" class="d-ts">INPUT_PULLUP</text>
+  <path d="M414 292 H300" class="w-sig"/><rect x="20" y="270" width="280" height="44" rx="8" class="d-box2"/>
+  <text x="32" y="289" class="d-tb">HC-SR501 OUT (PIR)</text><text x="32" y="306" class="d-ts">VCC модуля → 5V, GND → GND</text>
+  <path d="M414 340 H300" class="w-pwm" stroke-dasharray="6 4"/><rect x="20" y="318" width="280" height="44" rx="8" class="d-box"/>
+  <text x="32" y="337" class="d-t">HC-SR04P TRIG (опційно)</text><text x="32" y="354" class="d-ts">strapping-пін: лише вихід</text>
+  <path d="M414 388 H300" class="w-sig"/><rect x="20" y="366" width="280" height="44" rx="8" class="d-acc"/>
+  <text x="32" y="385" class="d-tb">Кнопка OK → GND</text><text x="32" y="402" class="d-ts">INPUT_PULLUP</text>
+  <path d="M414 436 H300" class="w-sig"/><rect x="20" y="414" width="280" height="44" rx="8" class="d-box2"/>
+  <text x="32" y="433" class="d-tb">Аналогове світло (АЦП)</text><text x="32" y="450" class="d-ts">3V3─LDR─●─10k─GND або TEMT6000 SIG</text>
+  <!-- праві з'єднання -->
+  <path d="M586 100 H700" class="w-sig"/><rect x="700" y="78" width="280" height="44" rx="8" class="d-acc"/>
+  <text x="712" y="97" class="d-tb">Кнопка DOWN → GND</text><text x="712" y="114" class="d-ts">INPUT_PULLUP</text>
+  <path d="M586 148 H700" class="w-sda"/><path d="M586 196 H700" class="w-scl"/>
+  <rect x="700" y="128" width="280" height="88" rx="8" class="d-info"/>
+  <text x="712" y="148" class="d-tb">Шина I2C: SDA=6, SCL=7</text>
+  <text x="712" y="168" class="d-t">BH1750 0x23 · OLED 0x3C</text>
+  <text x="712" y="186" class="d-t">VL53L0X 0x29</text>
+  <text x="712" y="205" class="d-ts">усі VCC → 3V3, усі GND → GND</text>
+  <path d="M586 244 H700" class="w-sig"/><rect x="700" y="222" width="280" height="44" rx="8" class="d-acc"/>
+  <text x="712" y="241" class="d-tb">Кнопка MANUAL → GND</text><text x="712" y="258" class="d-ts">при натисканні світиться синій LED</text>
+  <path d="M586 292 H700" class="d-line" stroke-dasharray="3 4"/><rect x="700" y="270" width="280" height="44" rx="8" class="d-box"/>
+  <text x="712" y="289" class="d-t">BOOT — не підключати</text><text x="712" y="306" class="d-ts">кнопка BOOT на платі</text>
+  <path d="M586 340 H700" class="w-pwm"/><rect x="700" y="318" width="280" height="44" rx="8" class="d-warn"/>
+  <text x="712" y="337" class="d-tb">ШІМ → 100 Ом → затвор AO3400</text><text x="712" y="354" class="d-ts">див. схему ключа нижче</text>
+  <path d="M586 388 H700" class="w-pwm" stroke-dasharray="6 4"/><rect x="700" y="366" width="280" height="44" rx="8" class="d-box"/>
+  <text x="712" y="385" class="d-t">HC-SR04P ECHO (опційно)</text><text x="712" y="402" class="d-ts">у Wokwi цей пін — «RX»</text>
+  <path d="M586 436 H700" class="d-line" stroke-dasharray="3 4"/><rect x="700" y="414" width="280" height="44" rx="8" class="d-box"/>
+  <text x="712" y="433" class="d-t">TX — вільний</text><text x="712" y="450" class="d-ts">лог завантажувача при старті</text>
+</svg>
+</div>
+<div class="legend">
+  <span style="--c:var(--w-pwr)">живлення</span><span style="--c:var(--w-gnd)">земля</span>
+  <span style="--c:var(--w-sda)">I2C SDA</span><span style="--c:var(--w-scl)">I2C SCL</span>
+  <span style="--c:var(--w-sig)">сигнал</span><span style="--c:var(--w-pwm)">ШІМ / опційно</span>
+</div>
+<figcaption>Розташування пінів типове для Super Mini (USB вгорі). Обов'язково звірте з підписами на своїй платі — деякі клони відрізняються.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<tr><th>Сигнал</th><th>ESP32-C3 Super Mini</th><th>STM32F411 Black Pill</th></tr>
+<tr><td>I2C SDA / SCL</td><td>GPIO6 / GPIO7</td><td>PB7 / PB6</td></tr>
+<tr><td>ШІМ → затвор AO3400</td><td>GPIO10</td><td>PA8 (TIM1_CH1)</td></tr>
+<tr><td>PIR OUT</td><td>GPIO3</td><td>PB0</td></tr>
+<tr><td>Аналоговий датчик світла</td><td>GPIO0</td><td>PA1</td></tr>
+<tr><td>Кнопки UP / DOWN / OK / MANUAL</td><td>GPIO4 / 5 / 1 / 8</td><td>PB12 / 13 / 14 / 15</td></tr>
+<tr><td>HC-SR04 TRIG / ECHO (опційно)</td><td>GPIO2 / GPIO20</td><td>PB8 / PB9</td></tr>
+</table></div>
+
+<h3 id="why-pins">Чому саме ці піни</h3>
+<ul>
+  <li><b>GPIO0–4</b> — єдині виводи ESP32-C3 з АЦП, тому аналоговий датчик стоїть на GPIO0.</li>
+  <li>У багатьох прикладах I2C сидить на GPIO8/9, але це strapping-піни, а GPIO8 ще й керує LED. Тому I2C винесено на вільні <b>GPIO6/7</b>; бібліотеці це байдуже: <code>Wire.begin(6, 7)</code>.</li>
+  <li><b>GPIO8</b> для кнопки безпечний: він замикається на GND лише при натисканні, а під час старту кнопку ніхто не тримає.</li>
+  <li><b>GPIO20/21</b> — UART0. На GPIO21 при старті виходить лог завантажувача, тому його лишаємо вільним.</li>
+</ul>
+
+<h2 id="mosfet">Ключ на MOSFET: як стрічка вмикається від 3.3 В</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 420 400" role="img" aria-label="Схема low-side ключа на AO3400">
+  <!-- +5V -->
+  <path d="M60 30 H300" class="w-pwr"/><text x="60" y="22" class="d-tb" style="fill:var(--w-pwr)">+5V БЖ</text>
+  <!-- конденсатор -->
+  <path d="M90 30 V120" class="w-pwr"/>
+  <path d="M74 120 H106 M74 132 H106" class="d-line" style="stroke-width:3"/>
+  <path d="M90 132 V360" class="w-gnd"/>
+  <text x="30" y="118" class="d-ts">1000 µF</text><text x="112" y="116" class="d-ts">+</text>
+  <!-- стрічка -->
+  <path d="M240 30 V70" class="w-pwr"/>
+  <rect x="200" y="70" width="80" height="60" rx="8" class="d-box2"/>
+  <g class="f-pwm"><circle cx="218" cy="100" r="5"/><circle cx="234" cy="100" r="5"/><circle cx="250" cy="100" r="5"/><circle cx="266" cy="100" r="5"/></g>
+  <text x="290" y="92" class="d-t">LED-стрічка</text><text x="290" y="110" class="d-ts">(+) зверху</text><text x="290" y="126" class="d-ts">(−) знизу</text>
+  <path d="M240 130 V190" class="d-line" style="stroke-width:2.4"/>
+  <!-- MOSFET -->
+  <path d="M240 190 V215 M240 265 V290" class="d-line" style="stroke-width:2.4"/>
+  <path d="M226 210 V270" class="d-line" style="stroke-width:3"/>
+  <path d="M226 215 H240 M226 240 H240 M226 265 H240" class="d-line" style="stroke-width:2.4"/>
+  <path d="M214 218 V262" class="d-line" style="stroke-width:3"/>
+  <path d="M230 240 l8 -5 v10 z" class="f-muted"/>
+  <text x="250" y="210" class="d-t">D (3)</text><text x="250" y="244" class="d-tb">AO3400</text><text x="250" y="278" class="d-t">S (2)</text>
+  <!-- затвор -->
+  <path d="M214 240 H170" class="w-pwm"/>
+  <rect x="120" y="232" width="50" height="16" rx="3" class="d-warn"/><text x="145" y="226" text-anchor="middle" class="d-ts">100 Ом</text>
+  <path d="M120 240 H20" class="w-pwm"/><text x="20" y="232" class="d-tb" style="fill:var(--w-pwm)">GPIO10</text>
+  <text x="186" y="234" class="d-ts">G (1)</text>
+  <path d="M190 240 V290" class="w-pwm"/>
+  <rect x="182" y="290" width="16" height="40" rx="3" class="d-box"/><text x="204" y="316" class="d-ts">100k</text>
+  <path d="M190 330 V360" class="w-gnd"/>
+  <path d="M240 290 V360" class="w-gnd"/>
+  <path d="M20 360 H300" class="w-gnd"/><text x="20" y="384" class="d-tb">GND — спільна з ESP32</text>
+  <!-- струм -->
+  <path d="M390 50 V330" class="d-arrow" stroke-dasharray="2 6" style="stroke-width:3"/>
+  <text x="398" y="140" class="d-ta" transform="rotate(90 398 140)">струм стрічки ↓</text>
+</svg>
+<figcaption>Low-side ключ: MOSFET розриває «мінус» стрічки.</figcaption>
+</figure>
+<div>
+<h4>Як це працює</h4>
+<ol>
+  <li>«+» стрічки підключений до +5 В постійно, а «−» — через MOSFET до землі.</li>
+  <li>Коли на затворі (G) 3.3 В, канал D–S відкривається і струм тече: стрічка світить.</li>
+  <li>ШІМ 20 кГц вмикає й вимикає ключ 20 000 разів на секунду. Частка часу «увімкнено» = яскравість.</li>
+  <li><b>100 Ом</b> у затворі обмежують кидок струму з GPIO під час перемикання.</li>
+  <li><b>100 кОм</b> на землю тримають ключ закритим, поки ESP32 стартує і пін «висить». Інакше стрічка може спалахнути при ввімкненні.</li>
+</ol>
+<h4>Цоколівка AO3400 (SOT-23)</h4>
+<svg viewBox="0 0 260 120" role="img" aria-label="Цоколівка SOT-23 AO3400" style="max-width:300px">
+  <rect x="80" y="30" width="100" height="56" rx="4" class="d-chip"/>
+  <text x="130" y="64" text-anchor="middle" class="d-tw">A09T</text>
+  <rect x="94" y="86" width="14" height="18" class="d-box"/><rect x="152" y="86" width="14" height="18" class="d-box"/>
+  <rect x="123" y="12" width="14" height="18" class="d-box"/>
+  <text x="101" y="118" text-anchor="middle" class="d-t">1 G</text><text x="159" y="118" text-anchor="middle" class="d-t">2 S</text>
+  <text x="130" y="9" text-anchor="middle" class="d-t">3 D</text>
+</svg>
+<p class="d-ts" style="font-size:13px;color:var(--muted)">Вид зверху, маркування до вас. Звірте з datasheet вашої партії.</p>
+</div>
+</div>
+
+<div class="callout unity"><span class="callout-title">Аналогія</span>MOSFET — це «реле без механіки». Слабкий сигнал з GPIO (кілька міліампер) керує сильним струмом стрічки (амперами), як <code>bool</code>-прапорець, що вмикає важкий ефект на сцені.</div>
+
+<h2 id="divider">Дільник для фоторезистора</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 300 260" role="img" aria-label="Дільник напруги з фоторезистором">
+  <path d="M60 20 V60" class="w-pwr"/><text x="70" y="26" class="d-tb" style="fill:var(--w-pwr)">3V3</text>
+  <rect x="44" y="60" width="32" height="56" rx="4" class="d-warn"/><text x="86" y="84" class="d-t">LDR</text><text x="86" y="102" class="d-ts">GL5516</text>
+  <path d="M64 70 l12 -12 M70 76 l12 -12" class="d-arrow"/>
+  <path d="M60 116 V140" class="d-line" style="stroke-width:2.4"/>
+  <circle cx="60" cy="140" r="5" class="f-sig"/>
+  <path d="M60 140 H200" class="w-sig"/><text x="206" y="145" class="d-tb" style="fill:var(--w-sig)">GPIO0</text>
+  <path d="M60 140 V164" class="d-line" style="stroke-width:2.4"/>
+  <rect x="44" y="164" width="32" height="56" rx="4" class="d-box"/><text x="86" y="196" class="d-t">10 кОм</text>
+  <path d="M60 220 V245 M30 245 H90" class="w-gnd"/><text x="100" y="250" class="d-tb">GND</text>
+</svg>
+<figcaption>Більше світла → менший опір LDR → вища напруга на GPIO0.</figcaption>
+</figure>
+<div>
+<p>АЦП вимірює не опір, а <b>напругу</b>. Дільник перетворює опір на напругу:</p>
+<pre><code>U = 3.3 × 10k / (R_ldr + 10k)
+R_ldr = 10k × (3.3 − U) / U</code></pre>
+<p>Чому LDR <b>вгорі</b>: АЦП ESP32-C3 точний приблизно до 2.5 В. Для нас важлива зона «темно», а в цій схемі в темряві напруга мала, тобто якраз у точній зоні.</p>
+<p>Модуль у Wokwi зроблений навпаки (LDR внизу). Прошивка враховує це через <code>ANALOG_LIGHT_KIND</code> у <code>config.h</code>.</p>
+</div>
+</div>
+
+<h2 id="safety">Безпека — правила першого ввімкнення</h2>
+<ol>
+  <li><b>Спільна земля</b>: GND БЖ, GND ESP32 і всіх модулів з'єднані.</li>
+  <li><b>Не подавайте 5 В від БЖ на пін 5V плати, коли підключено USB</b>, без діода Шотткі — два джерела «боротимуться».</li>
+  <li><b>100 кОм від затвора на GND</b> — щоб стрічка не спалахувала при старті.</li>
+  <li><b>Полярність</b> стрічки, електролітичного конденсатора і БЖ перевіряйте мультиметром до ввімкнення.</li>
+  <li>Нічого 5-вольтового на GPIO ESP32-C3. HC-SR501 OUT = 3.3 В — це нормально. Звичайний HC-SR04 ECHO = 5 В — лише через дільник.</li>
+  <li>Перше ввімкнення — без стрічки або з коротким шматком.</li>
+</ol>
+
+<h2 id="checklist">Чек-лист перевірки заліза</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="h1" data-key="h1"><label for="h1">Мультиметр: 3V3 = 3.2–3.4 В, лінія 5 В = 4.9–5.2 В</label></li>
+  <li><input type="checkbox" id="h2" data-key="h2"><label for="h2">Урок 06: I2C-сканер бачить 0x23 (BH1750), 0x3C (OLED), 0x29 (VL53L0X)</label></li>
+  <li><input type="checkbox" id="h3" data-key="h3"><label for="h3">Урок 03: стрічка плавно «дихає», AO3400 після 5 хв на 100 % лише теплий</label></li>
+  <li><input type="checkbox" id="h4" data-key="h4"><label for="h4">Урок 05: при русі в Serial з'являється <code>motion=1</code></label></li>
+  <li><input type="checkbox" id="h5" data-key="h5"><label for="h5">Усі 4 кнопки дають SHORT/LONG (урок 02 з різними пінами)</label></li>
+  <li><input type="checkbox" id="h6" data-key="h6"><label for="h6">Фінальна прошивка: налаштування зберігаються після вимкнення</label></li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

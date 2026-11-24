@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Програмне забезпечення</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 03</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>03. Програмне забезпечення</h1>
+<p class="lead">Що встановити на Windows, щоб писати, збирати та прошивати код для ESP32-C3 і STM32, і як перевірити, що все працює.</p>
+
+<h2 id="toolchain">Як код потрапляє в мікроконтролер</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 820 170" role="img" aria-label="Ланцюжок інструментів: редактор, компілятор, прошивальник, плата, монітор">
+  <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+  <rect x="10" y="40" width="140" height="80" rx="10" class="d-box2"/><text x="80" y="72" text-anchor="middle" class="d-tb">main.cpp</text><text x="80" y="94" text-anchor="middle" class="d-ts">VS Code</text>
+  <rect x="180" y="40" width="150" height="80" rx="10" class="d-acc"/><text x="255" y="72" text-anchor="middle" class="d-tb">Компілятор</text><text x="255" y="94" text-anchor="middle" class="d-ts">PlatformIO: gcc</text>
+  <rect x="360" y="40" width="140" height="80" rx="10" class="d-box2"/><text x="430" y="72" text-anchor="middle" class="d-tb">firmware.bin</text><text x="430" y="94" text-anchor="middle" class="d-ts">машинний код</text>
+  <rect x="530" y="40" width="140" height="80" rx="10" class="d-acc"/><text x="600" y="72" text-anchor="middle" class="d-tb">Прошивальник</text><text x="600" y="94" text-anchor="middle" class="d-ts">esptool / DFU / ST-Link</text>
+  <rect x="700" y="40" width="110" height="80" rx="10" class="d-info"/><text x="755" y="72" text-anchor="middle" class="d-tb">Плата</text><text x="755" y="94" text-anchor="middle" class="d-ts">flash-пам'ять</text>
+  <path d="M150 80 H178 M330 80 H358 M500 80 H528 M670 80 H698" class="d-arrow" marker-end="url(#a3)"/>
+  <path d="M755 120 C755 160 120 160 80 122" class="d-line" stroke-dasharray="5 4" marker-end="url(#a3)"/>
+  <text x="420" y="160" text-anchor="middle" class="d-ts">Serial Monitor: Serial.println() повертається у VS Code через той самий USB</text>
+</svg>
+</div>
+<figcaption>PlatformIO робить усе це однією кнопкою «→ Upload».</figcaption>
+</figure>
+
+<h2 id="minimal">Мінімальний набір</h2>
+<div class="table-wrap"><table>
+<tr><th>Програма</th><th>Навіщо</th><th>Де взяти</th></tr>
+<tr><td><b>VS Code</b></td><td>редактор коду</td><td><a href="https://code.visualstudio.com">code.visualstudio.com</a></td></tr>
+<tr><td><b>PlatformIO IDE</b></td><td>збірка, прошивка, бібліотеки, Serial Monitor. Сам завантажує компілятори для ESP32 і STM32. Докладно, що це таке і чим відрізняється від інших інструментів, — <a href="lessons.html#platformio">на сторінці уроків</a></td><td>VS Code → Extensions → «PlatformIO IDE»</td></tr>
+<tr><td><b>Git for Windows</b></td><td>історія змін, відкат невдалих правок ШІ</td><td><a href="https://git-scm.com">git-scm.com</a></td></tr>
+<tr><td><b>Wokwi Simulator</b></td><td>симуляція у VS Code. Онлайн-версія безкоштовна для особистого використання; розширення VS Code — 30 днів пробно, далі платний план (безкоштовно для open-source)</td><td>Extensions → «Wokwi Simulator»</td></tr>
+<tr><td><b>ШІ-агент</b></td><td>Claude Code, Copilot або інший</td><td>див. <a href="02-ai-tools.html">02</a></td></tr>
+</table></div>
+
+<h2 id="stm32sw">Для STM32 додатково</h2>
+<div class="table-wrap"><table>
+<tr><th>Програма</th><th>Навіщо</th></tr>
+<tr><td><b>STM32CubeIDE</b></td><td>офіційна IDE від ST (на базі Eclipse): HAL, налагодження</td></tr>
+<tr><td><b>STM32CubeMX</b></td><td>графічне налаштування пінів, тактування, периферії (вбудований у CubeIDE)</td></tr>
+<tr><td><b>STM32CubeProgrammer</b></td><td>прошивка через USB DFU або ST-Link, перевірка flash</td></tr>
+<tr><td><b>Драйвер ST-Link</b></td><td>для програматора ST-Link V2 (входить у CubeProgrammer)</td></tr>
+</table></div>
+<p>Усе завантажується з st.com після безкоштовної реєстрації.</p>
+
+<h2 id="optional">Необов'язково</h2>
+<ul>
+  <li><b>Arduino IDE 2</b> — простіша за PlatformIO, підійде для перших 1–2 уроків.</li>
+  <li><b>ESP-IDF</b> — «рідний» фреймворк Espressif; варто спробувати після проєкту.</li>
+  <li><b>PulseView</b> (sigrok) — з логічним аналізатором дозволяє бачити сигнали I2C і ШІМ.</li>
+</ul>
+
+<h2 id="install">Встановлення крок за кроком</h2>
+<ol>
+  <li>Встановіть VS Code → <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> → знайдіть <b>PlatformIO IDE</b> → Install → перезапустіть VS Code. Перший запуск триває кілька хвилин, бо PlatformIO завантажує власний Python та інструменти.</li>
+  <li>Встановіть Git.</li>
+  <li>File → Open Folder → оберіть папку <code>lessons</code>. PlatformIO знайде <code>platformio.ini</code> і завантажить платформу ESP32 (це довго тільки перший раз).</li>
+  <li>На нижній синій панелі: <b>✓</b> Build, <b>→</b> Upload, <b>🔌</b> Serial Monitor; поруч — вибір env (<code>l01_blink</code>, …).</li>
+  <li>Щоб ШІ-агент міг запускати <code>pio</code> з терміналу, додайте до змінної PATH папку <code>%USERPROFILE%\.platformio\penv\Scripts</code>.</li>
+</ol>
+
+<h3 id="first-flash">Перша прошивка</h3>
+<pre><code>cd lessons
+pio run -e l01_blink -t upload
+pio device monitor -b 115200</code></pre>
+<div class="callout tip"><span class="callout-title">Очікуваний результат</span>Синій LED на платі мигає, у моніторі з'являються рядки <code>[blink] led=1 count=…</code>.</div>
+
+<h2 id="esp32c3">Особливості ESP32-C3 Super Mini</h2>
+<div class="grid-2">
+<figure class="diagram" style="margin:0">
+<svg viewBox="0 0 300 220" role="img" aria-label="Кнопки BOOT і RESET на ESP32-C3 Super Mini">
+  <rect x="70" y="20" width="160" height="190" rx="10" class="d-box2"/>
+  <rect x="125" y="8" width="50" height="26" rx="5" class="d-box"/><text x="150" y="26" text-anchor="middle" class="d-ts">USB-C</text>
+  <rect x="115" y="70" width="70" height="70" rx="4" class="d-chip"/><text x="150" y="102" text-anchor="middle" class="d-tw">ESP32</text><text x="150" y="118" text-anchor="middle" class="d-tw">-C3</text>
+  <rect x="88" y="40" width="22" height="16" rx="3" class="d-warn"/><text x="99" y="68" text-anchor="middle" class="d-ts">BOOT</text>
+  <rect x="190" y="40" width="22" height="16" rx="3" class="d-info"/><text x="201" y="68" text-anchor="middle" class="d-ts">RST</text>
+  <circle cx="150" cy="170" r="5" style="fill:var(--w-sda)"/><text x="150" y="192" text-anchor="middle" class="d-ts">LED GPIO8</text>
+  <text x="20" y="215" class="d-ts">1. тримати BOOT  2. натиснути RST  3. відпустити BOOT</text>
+</svg>
+</figure>
+<div>
+<ul>
+  <li>USB під'єднаний <b>прямо до чипа</b> (USB-Serial/JTAG), окремого чипа CH340 немає. Драйвер у Windows 10/11 зазвичай не потрібен.</li>
+  <li>Щоб <code>Serial</code> працював через USB, у <code>platformio.ini</code> є прапор <code>-DARDUINO_USB_CDC_ON_BOOT=1</code>.</li>
+  <li><b>Плата не прошивається або немає COM-порту?</b> Затисніть <b>BOOT</b>, натисніть <b>RST</b>, відпустіть BOOT, прошийте, потім натисніть RST.</li>
+  <li>Використовуйте <b>кабель з лініями даних</b>: «зарядні» кабелі не працюють.</li>
+</ul>
+</div>
+</div>
+
+<h2 id="platform">Яку платформу ESP32 обрано</h2>
+<p>У наших <code>platformio.ini</code> вказано офіційну платформу <code>platformio/espressif32</code>. Станом на листопад 2026 вона постачає Arduino-ESP32 3.3.x і не потребує Git. Прошивку і всі уроки перевірено саме на ній. Спільнотна збірка <b>pioarduino</b> (новіший Arduino-ESP32) лишається закоментованою альтернативою. Код сумісний з обома (через <code>#if ESP_ARDUINO_VERSION_MAJOR &gt;= 3</code>).</p>
+
+<h3 id="win-errors">Якщо збірка падає на Windows</h3>
+<div class="table-wrap"><table>
+<tr><th>Повідомлення</th><th>Причина</th><th>Що робити</th></tr>
+<tr><td><code>Git not found in PATH</code></td><td>платформі pioarduino потрібен Git</td><td>встановити Git або повернутися на <code>platformio/espressif32</code></td></tr>
+<tr><td><code>FileNotFoundError … pkg-installing-…</code> під час розпакування</td><td>шлях довший за 260 символів — обмеження Windows</td><td>увімкнути довгі шляхи у Windows (потрібні права адміністратора) або задати короткий каталог PlatformIO: змінна середовища <code>PLATFORMIO_CORE_DIR=D:\pio</code></td></tr>
+<tr><td><code>An Application Control policy has blocked this file</code></td><td>Smart App Control / політика Windows блокує невідомий файл з <code>.platformio</code></td><td>повторити збірку (часто це разова перевірка репутації). Якщо блокується постійно — не вимикайте захист навмання: використовуйте офіційну платформу або зверніться до адміністратора</td></tr>
+</table></div>
+
+<h2 id="stm32flash">Особливості STM32F411 Black Pill</h2>
+<ul>
+  <li><b>Без програматора (USB DFU):</b> затисніть <b>BOOT0</b>, натисніть <b>NRST</b>, відпустіть BOOT0. З'явиться пристрій «STM32 BOOTLOADER». Якщо не виходить, тримайте BOOT0 довше. Іноді потрібен драйвер WinUSB (Zadig) або встановлений STM32CubeProgrammer.</li>
+  <li><b>З ST-Link V2</b> (рекомендовано): SWDIO, SWCLK, GND, 3V3. Дає покрокове налагодження з breakpoints.</li>
+</ul>
+
+<h2 id="check">Чек-лист</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="k1" data-key="k1"><label for="k1">VS Code + PlatformIO встановлено, перша збірка пройшла</label></li>
+  <li><input type="checkbox" id="k2" data-key="k2"><label for="k2">ESP32-C3 видно як COM-порт, урок 01 прошито</label></li>
+  <li><input type="checkbox" id="k3" data-key="k3"><label for="k3">Serial Monitor показує лог</label></li>
+  <li><input type="checkbox" id="k4" data-key="k4"><label for="k4"><code>pio</code> працює з терміналу (для ШІ-агента)</label></li>
+  <li><input type="checkbox" id="k5" data-key="k5"><label for="k5">Git встановлено, зроблено перший коміт</label></li>
+  <li><input type="checkbox" id="k6" data-key="k6"><label for="k6">STM32CubeIDE / CubeProgrammer встановлено (до етапу 4)</label></li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

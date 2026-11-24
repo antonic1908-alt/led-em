@@ -1,0 +1,11 @@
+# Wokwi for VS Code: спершу зберіть `pio run -e esp32c3_sim`, потім F1 → "Wokwi: Start Simulator".
+# Цей файл каже симулятору, яку прошивку запускати. Схему підключення Wokwi бере з diagram.json поруч.
+
+# Секція налаштувань симулятора
+[wokwi]
+# версія формату цього файлу (завжди 1)
+version = 1
+# готова прошивка, яку «завантажити» у віртуальну ESP32-C3 (результат збірки env esp32c3_sim)
+firmware = '.pio/build/esp32c3_sim/firmware.bin'
+# той самий код з налагоджувальною інформацією — для точних повідомлень про збої
+elf = '.pio/build/esp32c3_sim/firmware.elf'

@@ -1,0 +1,15 @@
+# Що НЕ потрапляє в git-репозиторій.
+
+# Результати збірки PlatformIO і завантажені бібліотеки (як bin/ і obj/ у C#) — відновлюються командою pio run
+.pio/
+
+# Файли VS Code, які PlatformIO генерує автоматично під конкретний комп'ютер
+.vscode/
+
+# Локальні налаштування Claude Code (особисті дозволи, тимчасовий сервер перегляду)
+.claude/settings.local.json
+.claude/launch.json
+
+# Службові файли Windows
+Thumbs.db
+desktop.ini

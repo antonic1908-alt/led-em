@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Симулятори та онлайн-інструменти</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 04</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>04. Симулятори та онлайн-інструменти</h1>
+<p class="lead">Симулятор — безпечний полігон: нічого не згорить, а ШІ-агент може перевірити свій код, поки ви чекаєте на посилку з компонентами.</p>
+
+<h2 id="which">Що для чого</h2>
+<div class="table-wrap"><table>
+<tr><th>Задача</th><th>Інструмент</th></tr>
+<tr><td>Перевірити програму для ESP32-C3 разом з дисплеєм, кнопками і датчиками</td><td><b>Wokwi</b></td></tr>
+<tr><td>Зрозуміти електроніку: струм через MOSFET, дільник напруги, pull-up</td><td><b>Falstad CircuitJS</b></td></tr>
+<tr><td>Найперші вправи «кнопка + світлодіод»</td><td>Tinkercad Circuits (лише Arduino Uno)</td></tr>
+<tr><td>Офлайн-симуляція з осцилографом</td><td>SimulIDE</td></tr>
+<tr><td>Намалювати принципову схему або друковану плату</td><td>EasyEDA (онлайн), KiCad (офлайн)</td></tr>
+<tr><td>Емуляція STM32 без плати (просунутий рівень)</td><td>Renode</td></tr>
+</table></div>
+
+<h2 id="wokwi">Wokwi — головний симулятор</h2>
+<p><a href="https://wokwi.com">wokwi.com</a> — браузерний симулятор мікроконтролерів, а також розширення для VS Code.</p>
+<div class="grid-2">
+<div>
+<h4>Є у Wokwi <span class="pill ok">підходить</span></h4>
+<ul>
+  <li>ESP32-C3 (DevKitM-1), STM32F103 Blue Pill, Nucleo C031/L031</li>
+  <li>OLED SSD1306</li>
+  <li>PIR-датчик руху</li>
+  <li>фоторезисторний модуль (з повзунком lux)</li>
+  <li>HC-SR04 (з повзунком відстані)</li>
+  <li>кнопки, світлодіоди, резистори</li>
+</ul>
+</div>
+<div>
+<h4>Немає у Wokwi <span class="pill buy">замінюємо</span></h4>
+<ul>
+  <li><b>BH1750</b> → фоторезисторний модуль (аналоговий)</li>
+  <li><b>VL53L0X</b> → HC-SR04</li>
+  <li><b>MOSFET і стрічка</b> → світлодіод на піні ШІМ</li>
+  <li><b>STM32F411 Black Pill</b> → для STM32-логіки є Blue Pill (F103)</li>
+</ul>
+</div>
+</div>
+<p>Тому в прошивці є окремий env <code>esp32c3_sim</code> з прапором <code>SIM_MODE=1</code>: він бере дистанцію з HC-SR04, а світло — з аналогового входу. Прошивка навіть без прапора автоматично перемикається на аналоговий датчик, якщо не знаходить BH1750.</p>
+
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 800 300" role="img" aria-label="Схема симуляції в Wokwi">
+  <rect x="320" y="70" width="160" height="170" rx="10" class="d-acc"/>
+  <text x="400" y="100" text-anchor="middle" class="d-tb">ESP32-C3</text>
+  <text x="400" y="118" text-anchor="middle" class="d-ts">DevKitM-1 у Wokwi</text>
+  <g class="d-tm">
+    <text x="330" y="150">GPIO6/7</text><text x="330" y="172">GPIO3</text><text x="330" y="194">GPIO0</text><text x="330" y="216">GPIO2/RX</text>
+    <text x="418" y="150">GPIO4,5</text><text x="418" y="172">GPIO1,8</text><text x="418" y="216">GPIO10</text>
+  </g>
+  <rect x="20" y="20" width="200" height="50" rx="8" class="d-box2"/><text x="36" y="42" class="d-tb">OLED SSD1306</text><text x="36" y="60" class="d-ts">I2C 0x3C — як у житті</text>
+  <rect x="20" y="85" width="200" height="50" rx="8" class="d-box2"/><text x="36" y="107" class="d-tb">PIR</text><text x="36" y="125" class="d-ts">клік = «рух»</text>
+  <rect x="20" y="150" width="200" height="50" rx="8" class="d-warn"/><text x="36" y="172" class="d-tb">Фоторезистор</text><text x="36" y="190" class="d-ts">замість BH1750, повзунок lux</text>
+  <rect x="20" y="215" width="200" height="50" rx="8" class="d-warn"/><text x="36" y="237" class="d-tb">HC-SR04</text><text x="36" y="255" class="d-ts">замість VL53L0X, повзунок см</text>
+  <path d="M220 45 C280 45 280 146 318 146" class="w-sda"/>
+  <path d="M220 110 C280 110 280 168 318 168" class="w-sig"/>
+  <path d="M220 175 C280 175 280 190 318 190" class="w-sig"/>
+  <path d="M220 240 C280 240 280 212 318 212" class="w-pwm"/>
+  <rect x="580" y="70" width="200" height="60" rx="8" class="d-box2"/><text x="596" y="94" class="d-tb">Кнопки ×4</text><text x="596" y="114" class="d-ts">клавіші 1 2 3 4</text>
+  <rect x="580" y="180" width="200" height="60" rx="8" class="d-warn"/><text x="596" y="204" class="d-tb">LED + 220 Ом</text><text x="596" y="224" class="d-ts">замість MOSFET і стрічки</text>
+  <path d="M480 146 C540 146 540 100 578 100" class="w-sig"/>
+  <path d="M480 212 C540 212 540 210 578 210" class="w-pwm"/>
+</svg>
+</div>
+<figcaption>Симуляція в Wokwi (<code>firmware/diagram.json</code>). Помаранчевим позначено компоненти, що замінюють відсутні в Wokwi деталі.</figcaption>
+</figure>
+
+<h3 id="run-vscode">Запуск у VS Code</h3>
+<pre><code>cd firmware
+pio run -e esp32c3_sim
+<span class="c"># відкрити firmware/diagram.json → F1 → "Wokwi: Start Simulator"</span></code></pre>
+
+<h3 id="run-web">Запуск у браузері</h3>
+<ol>
+  <li>wokwi.com → New Project → <b>ESP32-C3</b> (Arduino).</li>
+  <li>Вкладка <code>diagram.json</code> → вставити вміст <code>firmware/diagram.json</code>.</li>
+  <li>Додати файли з <code>firmware/src/</code> (кнопка «+» біля вкладок). Вміст <code>main.cpp</code> вставити в <code>sketch.ino</code>.</li>
+  <li>Library Manager → додати <b>U8g2</b>, <b>BH1750</b>, <b>VL53L0X</b> (від Pololu).</li>
+  <li>На початку <code>config.h</code> дописати <code>#define SIM_MODE 1</code>.</li>
+</ol>
+
+<h3 id="in-sim">Що робити в симуляції</h3>
+<ul>
+  <li>Клацнути на <b>PIR</b> — імітація руху (сигнал тримається ~3 с).</li>
+  <li>Клацнути на <b>фоторезисторі</b> — повзунок освітленості: 10 lux = темно, 1000 lux = світло.</li>
+  <li>Клацнути на <b>HC-SR04</b> — повзунок відстані.</li>
+  <li>Кнопки — мишею або клавішами <kbd>1</kbd> UP, <kbd>2</kbd> DOWN, <kbd>3</kbd> OK, <kbd>4</kbd> MANUAL.</li>
+  <li>Serial Monitor внизу показує лог <code>[ctrl] …</code>.</li>
+</ul>
+<div class="callout warn"><span class="callout-title">Якщо Wokwi лається на пін</span>Плата у Wokwi — DevKitM-1, а не Super Mini, але чип той самий. GPIO20 у Wokwi називається <code>RX</code>, а GPIO21 — <code>TX</code>. Якщо якесь з'єднання не підхопилося, перетягніть дріт мишею в редакторі.</div>
+
+<h3>Ціна Wokwi</h3>
+<p>Онлайн-версія безкоштовна для особистого використання. Wokwi for VS Code: 30-денна пробна ліцензія, безкоштовно для open-source, а далі платний план. Актуальне — на <a href="https://wokwi.com/pricing">wokwi.com/pricing</a>.</p>
+
+<h2 id="falstad">Falstad CircuitJS — щоб зрозуміти електроніку</h2>
+<p><a href="https://www.falstad.com/circuit/">falstad.com/circuit</a> показує анімований струм у схемі. Зберіть у ньому:</p>
+<ol>
+  <li><b>Дільник напруги</b>: 3.3 В → резистор 10k → змінний резистор (замість LDR) → GND. Крутіть повзунок і дивіться напругу в середній точці.</li>
+  <li><b>MOSFET-ключ</b>: 5 В → резистор 10 Ом (замість стрічки) → N-MOSFET → GND; на затвор — перемикач 0 / 3.3 В через 100 Ом, плюс 100k на GND. Подивіться, де тече струм.</li>
+  <li><b>Pull-up</b>: 3.3 В → 47k → вузол → кнопка → GND. Що буде у вузлі, коли кнопка відпущена і коли натиснута?</li>
+</ol>
+
+<h2 id="others">Інші інструменти</h2>
+<div class="table-wrap"><table>
+<tr><th>Інструмент</th><th>Для чого</th></tr>
+<tr><td><a href="https://simulide.com">SimulIDE</a></td><td>офлайн-симулятор (переважно AVR) з осцилографом і логічним аналізатором</td></tr>
+<tr><td><a href="https://www.tinkercad.com/circuits">Tinkercad Circuits</a></td><td>найпростіший старт, лише Arduino Uno</td></tr>
+<tr><td><a href="https://renode.io">Renode</a></td><td>емулятор STM32 без UI-компонентів (для просунутих)</td></tr>
+<tr><td><a href="https://easyeda.com">EasyEDA</a></td><td>схеми і плати онлайн, велика бібліотека, замовлення плат</td></tr>
+<tr><td><a href="https://www.kicad.org">KiCad</a></td><td>професійні схеми і PCB, безкоштовно</td></tr>
+<tr><td>Fritzing</td><td>«макетні» малюнки</td></tr>
+<tr><td><a href="https://app.cirkitdesigner.com">Cirkit Designer</a></td><td>онлайн-схеми з бібліотекою модулів (є ESP32-C3 Super Mini)</td></tr>
+</table></div>
+
+<h2 id="refs">Довідники</h2>
+<ul>
+  <li>Розпіновка ESP32-C3 Super Mini: <a href="https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/">Last Minute Engineers</a>, <a href="https://mischianti.org/esp32-c3-super-mini-high-resolution-pinout-datasheet-and-specs/">mischianti.org</a></li>
+  <li>Розпіновка Black Pill F411: <a href="https://stm32-base.org/boards/STM32F411CEU6-WeAct-Black-Pill-V2.0">stm32-base.org</a></li>
+  <li><a href="https://docs.wokwi.com/getting-started/supported-hardware">Список деталей Wokwi</a></li>
+  <li>Datasheet-и: AO3400 (Alpha &amp; Omega), BH1750FVI (Rohm), SSD1306 (Solomon Systech), VL53L0X (ST)</li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

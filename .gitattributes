@@ -1,0 +1,2 @@
+# Усі текстові файли зберігати з кінцями рядків LF (як у Linux), однаково на Windows і в GitHub Actions
+* text=auto eol=lf

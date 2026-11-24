@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Словник термінів</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+<style>
+  dl.gloss { margin: 0; }
+  dl.gloss dt { font-weight: 700; font-size: 17px; margin-top: 22px; scroll-margin-top: 16px; }
+  dl.gloss dt small { font-weight: 400; color: var(--muted); font-size: 13.5px; margin-left: 6px; }
+  dl.gloss dd { margin: 4px 0 0; padding: 0 0 14px; border-bottom: 1px solid var(--line); }
+  .mini { float: right; width: 200px; margin: 0 0 8px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  @media (max-width: 600px) { .mini { float: none; display: block; margin: 8px 0; width: 100%; max-width: 260px; } }
+  .az { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 20px; }
+  .az a { font-size: 13px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / Словник</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>Словник термінів</h1>
+<p class="lead">Коротко і по суті. Якщо термін незрозумілий навіть після цього — спитайте ШІ: «поясни X як для C#-розробника на прикладі».</p>
+
+<div class="az">
+  <a href="#gpio">GPIO</a><a href="#pullup">Pull-up</a><a href="#debounce">Debounce</a><a href="#pwm">ШІМ</a><a href="#adc">АЦП</a><a href="#divider">Дільник</a>
+  <a href="#i2c">I2C</a><a href="#mosfet">MOSFET</a><a href="#logic">Логічні рівні</a><a href="#gnd">GND</a><a href="#strap">Strapping</a><a href="#isr">ISR</a>
+  <a href="#fsm">State machine</a><a href="#flash">Flash/NVS</a><a href="#hal">HAL</a><a href="#dfu">DFU</a><a href="#swd">SWD</a><a href="#hyst">Гістерезис</a>
+</div>
+
+<dl class="gloss">
+<dt id="gpio">GPIO <small>General Purpose Input/Output</small></dt>
+<dd>«Ніжка» мікроконтролера, яку програма робить <b>входом</b> (читати 0/1) або <b>виходом</b> (видавати 0 В / 3.3 В). <code>pinMode()</code>, <code>digitalRead()</code>, <code>digitalWrite()</code>. Вихід GPIO дає лише ~10–20 мА: світлодіод так, стрічку ні.</dd>
+
+<dt id="pullup">Pull-up / pull-down <small>підтягувальний резистор</small></dt>
+<dd>
+<svg class="mini" viewBox="0 0 200 110" role="img" aria-label="Pull-up резистор"><path d="M40 10 V25" class="w-pwr"/><text x="48" y="20" class="d-ts">3.3V</text><rect x="32" y="25" width="16" height="34" rx="3" class="d-box"/><path d="M40 59 V70 H120" class="w-sig"/><text x="124" y="74" class="d-tm">GPIO</text><path d="M40 70 V82 L58 94" class="d-line" style="stroke-width:2"/><path d="M60 100 H20" class="w-gnd"/><text x="66" y="104" class="d-ts">кнопка → GND</text></svg>
+Резистор, що тримає вхід у відомому стані (HIGH або LOW), коли до нього нічого активно не підключено. Без нього вхід «висить» і читає випадкові значення. У ESP32 і STM32 є вбудовані: <code>INPUT_PULLUP</code>.</dd>
+
+<dt id="debounce">Брязкіт контактів, debounce</dt>
+<dd>Механічна кнопка при натисканні кілька мілісекунд «стрибає» між 0 і 1. Debounce — ігнорувати зміни, доки сигнал не стабільний ~20–50 мс. Див. <a href="lessons.html#l02">урок 02</a>.</dd>
+
+<dt id="pwm">ШІМ <small>PWM, широтно-імпульсна модуляція</small></dt>
+<dd>
+<svg class="mini" viewBox="0 0 200 70" role="img" aria-label="ШІМ"><path d="M10 55 V20 H50 V55 H70 V20 H110 V55 H130 V20 H170 V55 H190" class="w-pwm"/><text x="10" y="68" class="d-ts">заповнення ≈ 67 %</text></svg>
+Швидке вмикання/вимикання виходу з фіксованою частотою. Частка часу «увімкнено» (duty cycle) задає середню потужність, тобто яскравість. У нас 20 кГц, 10 біт (0…1023).</dd>
+
+<dt id="adc">АЦП <small>ADC, аналого-цифровий перетворювач</small></dt>
+<dd>Вимірює напругу на піні й повертає число: на ESP32-C3 12 біт (0…4095). Корисний діапазон ESP32-C3 — приблизно до 2.5 В. АЦП є лише на GPIO0–4 ESP32-C3.</dd>
+
+<dt id="divider">Дільник напруги</dt>
+<dd>Два резистори послідовно між живленням і землею; у середній точці U = Uвх × R2 / (R1 + R2). Так фоторезистор (змінний опір) перетворюється на напругу для АЦП. Див. <a href="05-hardware.html#divider">схему</a>.</dd>
+
+<dt id="i2c">I2C <small>«ай-ту-сі», TWI</small></dt>
+<dd>Шина з двох дротів (SDA — дані, SCL — тактування), на яку можна повісити багато пристроїв з різними адресами. Наші: BH1750 <code>0x23</code>, OLED <code>0x3C</code>, VL53L0X <code>0x29</code>. Потрібні pull-up резистори (вже є на модулях). Див. <a href="lessons.html#l06">урок 06</a>.</dd>
+
+<dt id="mosfet">MOSFET <small>польовий транзистор</small></dt>
+<dd>Електронний ключ: слабка напруга на затворі (G) відкриває канал сток–витік (D–S) для великого струму. <b>Logic-level</b> MOSFET (як AO3400) повністю відкривається вже від 2.5–3.3 В. Схема low-side: ключ між навантаженням і землею. Див. <a href="05-hardware.html#mosfet">ключ</a>.</dd>
+
+<dt id="logic">Логічні рівні 3.3 В / 5 В</dt>
+<dd>ESP32 і STM32 працюють від 3.3 В: «1» ≈ 3.3 В. Подача 5 В на вхід ESP32 може його пошкодити. STM32 має частину пінів, толерантних до 5 В (FT). Для 5-вольтових сигналів потрібен дільник або перетворювач рівнів.</dd>
+
+<dt id="gnd">GND і спільна земля</dt>
+<dd>Напруга — це завжди різниця між двома точками. Якщо земля блока живлення і земля плати не з'єднані, сигнал «3.3 В» для MOSFET нічого не означає. Тому всі GND з'єднуємо.</dd>
+
+<dt id="strap">Strapping-піни</dt>
+<dd>Піни, стан яких мікроконтролер читає <b>в момент старту</b>, щоб вирішити, як завантажуватися. У ESP32-C3 це GPIO2, GPIO8, GPIO9 (GPIO9 = кнопка BOOT). Не тягніть їх «не туди» під час ввімкнення.</dd>
+
+<dt id="isr">Переривання, ISR</dt>
+<dd>Функція, яку процесор викликає миттєво за подією (фронт на піні, таймер), перериваючи <code>loop()</code>. Схоже на подію (event) у C#, але викликається «в будь-який момент», тому має бути дуже короткою. У нашому проєкті переривань немає — для навчання простіше опитування.</dd>
+
+<dt id="fsm">Скінченний автомат <small>state machine</small></dt>
+<dd>Програма, що завжди перебуває в одному зі станів і переходить між ними за умовами. Як Animator Controller у Unity. Наш контролер: OFF → ON → HOLD → OFF.</dd>
+
+<dt id="flash">Flash, NVS, EEPROM-емуляція</dt>
+<dd>Енергонезалежна пам'ять, яка зберігає дані без живлення. Має обмежену кількість циклів запису (~10–100 тис.), тому зберігаємо не постійно, а при виході з меню. ESP32: бібліотека <code>Preferences</code> (NVS). STM32duino: <code>EEPROM</code> — емуляція у flash-секторі.</dd>
+
+<dt id="hal">HAL <small>Hardware Abstraction Layer</small></dt>
+<dd>Бібліотека ST для STM32: функції на кшталт <code>HAL_GPIO_WritePin()</code> замість прямого запису в регістри. Код генерує CubeMX. Рівень між Arduino (найпростіше) і регістрами (найнижче).</dd>
+
+<dt id="dfu">DFU, bootloader</dt>
+<dd>Вбудований у чип завантажувач, що дозволяє прошити його через USB без програматора. На Black Pill вмикається кнопкою BOOT0 під час reset, на ESP32-C3 — кнопкою BOOT.</dd>
+
+<dt id="swd">SWD, ST-Link</dt>
+<dd>Serial Wire Debug — 2-дротовий інтерфейс налагодження ARM-чипів (SWDIO, SWCLK). ST-Link — програматор, що дає прошивку, breakpoints і перегляд змінних наживо.</dd>
+
+<dt id="hyst">Гістерезис</dt>
+<dd>Різні пороги для вмикання і вимикання: «темно» нижче 30 lx, «світло» вище 40 lx. Без цього значення на межі (29.9 ↔ 30.1) змушує систему мерехтіти. Як «мертва зона» стіка геймпада.</dd>
+
+<dt id="lux">Люкс (lx)</dt>
+<dd>Одиниця освітленості. Орієнтири: ніч у кімнаті ≈ 1–10 lx, вечірнє світло ≈ 50–150, офіс ≈ 300–500, похмурий день надворі ≈ 1000+, сонце ≈ 10 000–100 000.</dd>
+
+<dt id="pir">PIR</dt>
+<dd>Пасивний інфрачервоний датчик: реагує на <b>зміну</b> теплового випромінювання (людина рухається). Нерухому людину не бачить, тому в проєкті є ще й датчик дистанції.</dd>
+
+<dt id="tof">ToF <small>Time of Flight</small></dt>
+<dd>Вимірювання відстані за часом прольоту світла (VL53L0X — лазер 940 нм) або звуку (HC-SR04 — ультразвук).</dd>
+</dl>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

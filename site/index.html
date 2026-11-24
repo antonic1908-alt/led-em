@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мікроконтролери з нуля</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs">Головна</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<section class="hero">
+  <h1>Мікроконтролери з нуля: від C# до розумної LED-стрічки</h1>
+  <p class="lead">Покроковий посібник для junior-програміста на C# (Unity) з базовими знаннями електроніки. Ви навчитеся програмувати <b>ESP32-C3</b> і <b>STM32F411</b> з допомогою ШІ-агентів, а в кінці зберете пристрій, який вмикає світло за рухом, освітленням і дистанцією, з меню на OLED-дисплеї.</p>
+  <div class="stats">
+    <span class="pill ok">≈ 6–8 тижнів</span>
+    <span class="pill ok">5–8 год / тиждень</span>
+    <span class="pill">8 уроків + проєкт</span>
+    <span class="pill">ESP32-C3 → STM32</span>
+    <span class="pill">Працює офлайн</span>
+  </div>
+</section>
+
+<h2 id="route">Маршрут навчання</h2>
+<p>Кожен блок — окремий розділ. Натисніть на блок, щоб перейти до нього. ШІ-помічник супроводжує вас на кожному етапі, але не замінює розуміння.</p>
+<figure class="diagram roadmap">
+<div class="diagram-scroll wide">
+<svg viewBox="0 0 900 300" role="img" aria-label="Маршрут навчання: підготовка, C++, уроки, проєкт, STM32">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="f-acc"/>
+    </marker>
+  </defs>
+  <!-- смуга ШІ -->
+  <rect x="20" y="240" width="860" height="40" rx="10" class="d-info"/>
+  <text x="450" y="265" text-anchor="middle" class="d-t">🤖 ШІ-агент + симулятор Wokwi на кожному кроці: пояснює, пише код, ви перевіряєте</text>
+
+  <a href="03-software.html">
+    <rect x="20" y="40" width="150" height="150" rx="12" class="d-box2"/>
+    <text x="95" y="72" text-anchor="middle" class="d-ta">ЕТАП 0</text>
+    <text x="95" y="98" text-anchor="middle" class="d-tb">Підготовка</text>
+    <text x="95" y="124" text-anchor="middle" class="d-ts">VS Code, PlatformIO</text>
+    <text x="95" y="142" text-anchor="middle" class="d-ts">Blink у Wokwi</text>
+    <text x="95" y="160" text-anchor="middle" class="d-ts">і на платі</text>
+    <text x="95" y="180" text-anchor="middle" class="d-ts">тиждень 1</text>
+  </a>
+  <a href="01-learning-plan.html#cpp">
+    <rect x="197" y="40" width="150" height="150" rx="12" class="d-box2"/>
+    <text x="272" y="72" text-anchor="middle" class="d-ta">ЕТАП 1</text>
+    <text x="272" y="98" text-anchor="middle" class="d-tb">C++ для C#</text>
+    <text x="272" y="124" text-anchor="middle" class="d-ts">типи, вказівники</text>
+    <text x="272" y="142" text-anchor="middle" class="d-ts">millis() замість delay</text>
+    <text x="272" y="160" text-anchor="middle" class="d-ts">state machine</text>
+    <text x="272" y="180" text-anchor="middle" class="d-ts">тижні 1–2</text>
+  </a>
+  <a href="lessons.html">
+    <rect x="374" y="40" width="150" height="150" rx="12" class="d-box2"/>
+    <text x="449" y="72" text-anchor="middle" class="d-ta">ЕТАП 2</text>
+    <text x="449" y="98" text-anchor="middle" class="d-tb">Уроки 01–08</text>
+    <text x="449" y="124" text-anchor="middle" class="d-ts">кнопки, ШІМ, АЦП</text>
+    <text x="449" y="142" text-anchor="middle" class="d-ts">PIR, I2C, OLED</text>
+    <text x="449" y="160" text-anchor="middle" class="d-ts">дистанція</text>
+    <text x="449" y="180" text-anchor="middle" class="d-ts">тижні 2–4</text>
+  </a>
+  <a href="06-project.html">
+    <rect x="551" y="40" width="150" height="150" rx="12" class="d-acc"/>
+    <text x="626" y="72" text-anchor="middle" class="d-ta">ЕТАП 3</text>
+    <text x="626" y="98" text-anchor="middle" class="d-tb">Проєкт</text>
+    <text x="626" y="124" text-anchor="middle" class="d-ts">розумна стрічка</text>
+    <text x="626" y="142" text-anchor="middle" class="d-ts">меню, налаштування</text>
+    <text x="626" y="160" text-anchor="middle" class="d-ts">на ESP32-C3</text>
+    <text x="626" y="180" text-anchor="middle" class="d-ts">тижні 4–6</text>
+  </a>
+  <a href="07-stm32.html">
+    <rect x="728" y="40" width="150" height="150" rx="12" class="d-box2"/>
+    <text x="803" y="72" text-anchor="middle" class="d-ta">ЕТАП 4</text>
+    <text x="803" y="98" text-anchor="middle" class="d-tb">STM32</text>
+    <text x="803" y="124" text-anchor="middle" class="d-ts">той самий проєкт</text>
+    <text x="803" y="142" text-anchor="middle" class="d-ts">CubeMX + HAL</text>
+    <text x="803" y="160" text-anchor="middle" class="d-ts">налагодження ST-Link</text>
+    <text x="803" y="180" text-anchor="middle" class="d-ts">тижні 6–8</text>
+  </a>
+  <path d="M170 115 H195" class="d-arrow" marker-end="url(#ar)"/>
+  <path d="M347 115 H372" class="d-arrow" marker-end="url(#ar)"/>
+  <path d="M524 115 H549" class="d-arrow" marker-end="url(#ar)"/>
+  <path d="M701 115 H726" class="d-arrow" marker-end="url(#ar)"/>
+  <path d="M95 190 V238 M272 190 V238 M449 190 V238 M626 190 V238 M803 190 V238" class="d-line" stroke-dasharray="4 4"/>
+</svg>
+</div>
+<figcaption>Маршрут навчання. На вузькому екрані схему можна гортати вбік.</figcaption>
+</figure>
+
+<h2 id="result">Що вийде в кінці</h2>
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 860 330" role="img" aria-label="Блок-схема проєкту: датчики, мікроконтролер, MOSFET, стрічка, дисплей, кнопки">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="f-muted"/>
+    </marker>
+  </defs>
+  <text x="20" y="26" class="d-ts">ВХОДИ</text>
+  <rect x="20" y="38" width="200" height="50" rx="9" class="d-box2"/><text x="36" y="60" class="d-tb">Рух</text><text x="36" y="78" class="d-ts">HC-SR501 (PIR)</text>
+  <rect x="20" y="98" width="200" height="50" rx="9" class="d-box2"/><text x="36" y="120" class="d-tb">Світло</text><text x="36" y="138" class="d-ts">BH1750 / фоторезистор</text>
+  <rect x="20" y="158" width="200" height="50" rx="9" class="d-warn"/><text x="36" y="180" class="d-tb">Дистанція</text><text x="36" y="198" class="d-ts">VL53L0X — докупити</text>
+  <rect x="20" y="218" width="200" height="50" rx="9" class="d-box2"/><text x="36" y="240" class="d-tb">Кнопки ×4</text><text x="36" y="258" class="d-ts">UP · DOWN · OK · MANUAL</text>
+
+  <rect x="320" y="70" width="210" height="170" rx="14" class="d-acc"/>
+  <text x="425" y="104" text-anchor="middle" class="d-ta">МІКРОКОНТРОЛЕР</text>
+  <text x="425" y="130" text-anchor="middle" class="d-tb">ESP32-C3 Super Mini</text>
+  <text x="425" y="150" text-anchor="middle" class="d-ts">потім STM32F411</text>
+  <text x="425" y="180" text-anchor="middle" class="d-t">режими АВТО / РУЧНИЙ</text>
+  <text x="425" y="200" text-anchor="middle" class="d-t">state machine</text>
+  <text x="425" y="220" text-anchor="middle" class="d-t">налаштування у flash</text>
+
+  <path d="M220 63 C270 63 270 120 318 120" class="d-line" marker-end="url(#ar2)"/>
+  <path d="M220 123 C270 123 270 140 318 140" class="d-line" marker-end="url(#ar2)"/>
+  <path d="M220 183 C270 183 270 165 318 165" class="d-line" marker-end="url(#ar2)"/>
+  <path d="M220 243 C270 243 270 190 318 190" class="d-line" marker-end="url(#ar2)"/>
+
+  <text x="620" y="26" class="d-ts">ВИХОДИ</text>
+  <rect x="620" y="60" width="100" height="56" rx="9" class="d-box2"/><text x="670" y="86" text-anchor="middle" class="d-tb">AO3400</text><text x="670" y="104" text-anchor="middle" class="d-ts">MOSFET</text>
+  <rect x="750" y="50" width="90" height="76" rx="9" class="d-box2"/>
+  <g class="f-pwm"><circle cx="768" cy="88" r="5"/><circle cx="786" cy="88" r="5"/><circle cx="804" cy="88" r="5"/><circle cx="822" cy="88" r="5"/></g>
+  <text x="795" y="70" text-anchor="middle" class="d-tb">Стрічка</text><text x="795" y="116" text-anchor="middle" class="d-ts">5V</text>
+  <path d="M530 110 C580 110 580 88 618 88" class="w-pwm" marker-end="url(#ar2)"/>
+  <text x="560" y="84" class="d-ts">ШІМ</text>
+  <path d="M720 88 H748" class="d-line"/>
+
+  <rect x="620" y="180" width="220" height="96" rx="9" class="d-box2"/>
+  <rect x="640" y="194" width="180" height="68" rx="3" fill="#000"/>
+  <rect x="644" y="198" width="172" height="14" style="fill:var(--oled-yellow)"/>
+  <text x="650" y="209" font-size="10" font-family="monospace" fill="#000" xml:space="preserve">АВТО          80%</text>
+  <text x="650" y="228" font-size="10" font-family="monospace" style="fill:var(--oled-blue)" xml:space="preserve">Світло 8.4 lx   BH</text>
+  <text x="650" y="242" font-size="10" font-family="monospace" style="fill:var(--oled-blue)" xml:space="preserve">Рух: так  *Дист 54</text>
+  <text x="650" y="256" font-size="10" font-family="monospace" style="fill:var(--oled-blue)">Утримання 12s</text>
+  <text x="730" y="292" text-anchor="middle" class="d-ts">OLED 128×64 (I2C)</text>
+  <path d="M530 200 C580 200 580 228 618 228" class="d-line" marker-end="url(#ar2)"/>
+</svg>
+</div>
+<figcaption>Пристрій: датчики → мікроконтролер → MOSFET → LED-стрічка. На OLED — стан і меню.</figcaption>
+</figure>
+
+<h2 id="sections">Розділи посібника</h2>
+<div class="cards">
+  <a class="card" href="01-learning-plan.html"><span class="card-num">01</span><h3>План навчання</h3><p>Етапи, тижні, контрольні точки. Шпаргалка «C# → C++».</p></a>
+  <a class="card" href="02-ai-tools.html"><span class="card-num">02</span><h3>ШІ-інструменти і вайбкодинг</h3><p>Рейтинг агентів, замкнений цикл «код → збірка → симулятор → плата», шаблони запитів.</p></a>
+  <a class="card" href="03-software.html"><span class="card-num">03</span><h3>Програмне забезпечення</h3><p>VS Code, PlatformIO, STM32CubeIDE: встановлення і перша прошивка.</p></a>
+  <a class="card" href="04-simulators.html"><span class="card-num">04</span><h3>Симулятори</h3><p>Wokwi, Falstad, Tinkercad, EasyEDA: що і коли використовувати.</p></a>
+  <a class="card" href="05-hardware.html"><span class="card-num">05</span><h3>Компоненти і схема</h3><p>Що у вас є, що докупити, повна схема підключення, правила безпеки.</p></a>
+  <a class="card" href="lessons.html"><span class="card-num">УРОКИ</span><h3>Уроки 01–08</h3><p>Від Blink до датчика дистанції: кожен урок з кодом і завданням «Зміни сам».</p></a>
+  <a class="card" href="06-project.html"><span class="card-num">06</span><h3>Проєкт: розумна стрічка</h3><p>ТЗ, логіка, меню, архітектура прошивки, критерії приймання.</p></a>
+  <a class="card" href="07-stm32.html"><span class="card-num">07</span><h3>Перенесення на STM32</h3><p>Той самий код на Black Pill, потім CubeMX + HAL і налагодження.</p></a>
+  <a class="card" href="glossary.html"><span class="card-num">Aa</span><h3>Словник</h3><p>GPIO, ШІМ, АЦП, I2C, pull-up, MOSFET — коротко і з картинками.</p></a>
+</div>
+
+<h2 id="howto">Як користуватися посібником</h2>
+<div class="grid-2">
+  <div class="callout tip"><span class="callout-title">Порядок</span>Йдіть розділами по черзі: кнопка «Наступний →» внизу кожної сторінки. Уроки виконуйте перед проєктом.</div>
+  <div class="callout unity"><span class="callout-title">Блоки «Аналогія з Unity»</span>Пояснюють нове через знайоме: <code>loop()</code> ≈ <code>Update()</code>, налаштування ≈ ScriptableObject.</div>
+  <div class="callout danger"><span class="callout-title">Блоки «Можна спалити»</span>Читайте уважно: помилки з напругою не виправити кнопкою Undo.</div>
+  <div class="callout ai"><span class="callout-title">Блоки «Запит до ШІ»</span>Готові промпти для агента: копіюйте, підставляйте свої дані.</div>
+</div>
+
+<h3>Файли проєкту</h3>
+<div class="table-wrap"><table>
+<tr><th>Папка</th><th>Що там</th></tr>
+<tr><td><code>site/</code></td><td>цей посібник (HTML)</td></tr>
+<tr><td><code>docs/</code></td><td>той самий зміст коротко, у Markdown (зручно давати ШІ-агенту)</td></tr>
+<tr><td><code>lessons/</code></td><td>PlatformIO-проєкт з уроками 01–08</td></tr>
+<tr><td><code>firmware/</code></td><td>фінальна прошивка для ESP32-C3, симуляції Wokwi і STM32F411</td></tr>
+<tr><td><code>CLAUDE.md</code></td><td>опис заліза та правил для ШІ-агента</td></tr>
+</table></div>
+
+<p class="footer-note">Посібник складено в листопаді 2026 року. Версії програм, ціни та рейтинги ШІ змінюються, тому звіряйтеся з сайтами виробників.</p>
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

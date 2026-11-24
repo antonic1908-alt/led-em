@@ -1,0 +1,35 @@
+# Публікація сайту (папка site/) на GitHub Pages.
+# Запускається автоматично після кожного злиття (merge) у гілку main —
+# тобто лише ПІСЛЯ того, як ви погодили Pull Request.
+name: Публікація сайту
+
+on:
+  push:
+    branches: [main]      # лише зміни, що потрапили в main
+  workflow_dispatch:      # кнопка «Run workflow» на вкладці Actions — опублікувати вручну
+
+# Права, потрібні для публікації на Pages
+permissions:
+  contents: read          # читати код репозиторію
+  pages: write            # публікувати на GitHub Pages
+  id-token: write         # підтвердити, що публікує саме цей репозиторій
+
+# Не запускати дві публікації одночасно; нову не переривати
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}   # адреса сайту з'явиться у звіті запуску
+    steps:
+      - uses: actions/checkout@v4                 # завантажити код репозиторію
+      - uses: actions/configure-pages@v5          # підготувати налаштування Pages
+      - uses: actions/upload-pages-artifact@v3    # запакувати папку site/
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4             # опублікувати

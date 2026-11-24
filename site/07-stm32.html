@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перенесення на STM32</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 07</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>07. Перенесення на STM32F411 (Black Pill)</h1>
+<p class="lead">ESP32 зручний і має Wi-Fi. STM32 — промисловий стандарт: побутова техніка, автомобілі, обладнання. Перенесення того самого проєкту наочно показує, що в коді залежить від заліза, а що ні.</p>
+
+<h2 id="board">Плата Black Pill і піни проєкту</h2>
+<figure class="diagram">
+<div class="diagram-scroll wide">
+<svg viewBox="0 0 900 360" role="img" aria-label="Black Pill STM32F411 і призначення пінів">
+  <rect x="200" y="100" width="500" height="150" rx="12" class="d-box2"/>
+  <rect x="160" y="148" width="44" height="54" rx="6" class="d-box"/><text x="182" y="230" text-anchor="middle" class="d-ts">USB-C</text>
+  <rect x="400" y="135" width="80" height="80" rx="4" class="d-chip"/><text x="440" y="170" text-anchor="middle" class="d-tw">STM32</text><text x="440" y="186" text-anchor="middle" class="d-tw">F411CE</text>
+  <rect x="250" y="190" width="34" height="18" rx="3" class="d-warn"/><text x="267" y="226" text-anchor="middle" class="d-ts">BOOT0</text>
+  <rect x="300" y="190" width="34" height="18" rx="3" class="d-info"/><text x="317" y="226" text-anchor="middle" class="d-ts">NRST</text>
+  <rect x="250" y="130" width="34" height="18" rx="3" class="d-box"/><text x="267" y="124" text-anchor="middle" class="d-ts">KEY PA0</text>
+  <circle cx="560" cy="140" r="6" style="fill:var(--w-sda)"/><text x="576" y="144" class="d-ts">LED PC13</text>
+  <rect x="660" y="140" width="34" height="70" rx="4" class="d-box"/><text x="677" y="236" text-anchor="middle" class="d-ts">SWD</text>
+  <!-- верхній ряд -->
+  <g class="d-tm">
+    <text x="230" y="90" text-anchor="middle">PB12</text><text x="290" y="90" text-anchor="middle">PB13</text><text x="350" y="90" text-anchor="middle">PB14</text><text x="410" y="90" text-anchor="middle">PB15</text>
+    <text x="470" y="90" text-anchor="middle">PA8</text>
+  </g>
+  <circle cx="230" cy="100" r="6" class="f-sig"/><circle cx="290" cy="100" r="6" class="f-sig"/><circle cx="350" cy="100" r="6" class="f-sig"/><circle cx="410" cy="100" r="6" class="f-sig"/><circle cx="470" cy="100" r="6" class="f-pwm"/>
+  <path d="M230 80 V50 M290 80 V50 M350 80 V50 M410 80 V50" class="w-sig"/><path d="M470 80 V50" class="w-pwm"/>
+  <text x="230" y="40" text-anchor="middle" class="d-t">UP</text><text x="290" y="40" text-anchor="middle" class="d-t">DOWN</text><text x="350" y="40" text-anchor="middle" class="d-t">OK</text><text x="410" y="40" text-anchor="middle" class="d-t">MANUAL</text>
+  <text x="470" y="40" text-anchor="middle" class="d-t">ШІМ → AO3400</text>
+  <!-- нижній ряд -->
+  <g class="d-tm">
+    <text x="230" y="276" text-anchor="middle">PB6</text><text x="290" y="276" text-anchor="middle">PB7</text><text x="350" y="276" text-anchor="middle">PB8</text><text x="410" y="276" text-anchor="middle">PB9</text>
+    <text x="470" y="276" text-anchor="middle">PB0</text><text x="530" y="276" text-anchor="middle">PA1</text><text x="600" y="276" text-anchor="middle">3V3</text><text x="650" y="276" text-anchor="middle">GND</text>
+  </g>
+  <circle cx="230" cy="250" r="6" class="f-scl"/><circle cx="290" cy="250" r="6" class="f-sda"/><circle cx="350" cy="250" r="6" class="f-muted"/><circle cx="410" cy="250" r="6" class="f-muted"/>
+  <circle cx="470" cy="250" r="6" class="f-sig"/><circle cx="530" cy="250" r="6" class="f-sig"/><circle cx="600" cy="250" r="6" class="f-pwr"/><circle cx="650" cy="250" r="6" class="f-gnd"/>
+  <path d="M230 284 V316" class="w-scl"/><path d="M290 284 V316" class="w-sda"/><path d="M350 284 V316 M410 284 V316" class="w-pwm" stroke-dasharray="5 4"/>
+  <path d="M470 284 V316 M530 284 V316" class="w-sig"/><path d="M600 284 V316" class="w-pwr"/><path d="M650 284 V316" class="w-gnd"/>
+  <text x="230" y="334" text-anchor="middle" class="d-t">SCL</text><text x="290" y="334" text-anchor="middle" class="d-t">SDA</text>
+  <text x="380" y="334" text-anchor="middle" class="d-ts">TRIG / ECHO (опц.)</text>
+  <text x="470" y="334" text-anchor="middle" class="d-t">PIR</text><text x="530" y="334" text-anchor="middle" class="d-t">АЦП</text>
+  <text x="600" y="334" text-anchor="middle" class="d-ts">модулі</text><text x="650" y="334" text-anchor="middle" class="d-ts">спільна</text>
+</svg>
+</div>
+<figcaption>Схематичне розташування: показано лише піни проєкту, без точної фізичної позиції. Звіряйте з підписами на платі та з <a href="https://stm32-base.org/boards/STM32F411CEU6-WeAct-Black-Pill-V2.0">stm32-base.org</a>.</figcaption>
+</figure>
+
+<h2 id="step1">Крок 1. Той самий код — інша плата (PlatformIO + STM32duino)</h2>
+<p>У <code>firmware/platformio.ini</code> уже є env <code>blackpill</code>:</p>
+<pre><code>cd firmware
+pio run -e blackpill               <span class="c"># зібрати</span>
+pio run -e blackpill -t upload     <span class="c"># прошити (за замовчуванням через USB DFU)</span></code></pre>
+
+<h3>Що змінилося в коді</h3>
+<div class="table-wrap"><table>
+<tr><th>Що</th><th>ESP32-C3</th><th>STM32F411</th></tr>
+<tr><td>Піни</td><td>номери GPIO</td><td><code>PB7</code>, <code>PA8</code>… у <code>config.h</code></td></tr>
+<tr><td>I2C</td><td><code>Wire.begin(SDA, SCL)</code></td><td><code>Wire.setSDA(PB7); Wire.setSCL(PB6); Wire.begin();</code></td></tr>
+<tr><td>ШІМ</td><td>LEDC: <code>ledcAttach</code> / <code>ledcWrite</code></td><td><code>analogWriteFrequency()</code> + <code>analogWrite()</code> (таймер TIM1)</td></tr>
+<tr><td>Збереження</td><td><code>Preferences</code> (NVS)</td><td><code>EEPROM</code> (емуляція у flash-секторі)</td></tr>
+<tr><td>АЦП</td><td><code>analogReadMilliVolts()</code></td><td><code>analogRead()</code>, 12 біт, 3.3 В = 4095</td></tr>
+<tr><td>printf з float</td><td>працює одразу</td><td>потрібен прапор <code>-Wl,-u,_printf_float</code> (вже додано)</td></tr>
+</table></div>
+
+<pre><code><span class="c">// LedDriver.cpp — єдине місце, де ШІМ залежить від платформи</span>
+<span class="k">#if</span> defined(ARDUINO_ARCH_ESP32)
+  ledcAttach(pin_, PWM_FREQ_HZ, PWM_BITS);
+<span class="k">#elif</span> defined(ARDUINO_ARCH_STM32)
+  analogWriteResolution(PWM_BITS);
+  analogWriteFrequency(PWM_FREQ_HZ);
+<span class="k">#endif</span></code></pre>
+
+<h3>Як прошити</h3>
+<ol>
+  <li><b>USB DFU:</b> затиснути BOOT0 → натиснути NRST → відпустити BOOT0 → <code>pio run -e blackpill -t upload</code>. У Windows може знадобитися драйвер WinUSB (Zadig) або встановлений STM32CubeProgrammer.</li>
+  <li><b>ST-Link V2:</b> у <code>platformio.ini</code> поставити <code>upload_protocol = stlink</code>. З'єднання: SWDIO↔DIO, SWCLK↔CLK, GND↔GND, 3.3V↔3V3.</li>
+  <li><b>Лог:</b> через USB CDC (увімкнено прапорами <code>-DUSBCON -DPIO_FRAMEWORK_ARDUINO_ENABLE_CDC</code>).</li>
+</ol>
+<div class="callout warn"><span class="callout-title">Живлення модулів</span>I2C-модулі і дільник живляться від <b>3V3</b> Black Pill, HC-SR501 і стрічка — від 5 В. Земля спільна.</div>
+
+<h2 id="step2">Крок 2. «По-справжньому»: STM32CubeIDE + HAL</h2>
+<p>Мета — побачити, що Arduino-функції роблять під капотом.</p>
+<ol>
+  <li>File → New → STM32 Project → обрати <b>STM32F411CEUx</b>.</li>
+  <li>У файлі <code>.ioc</code> (CubeMX):
+    <ul>
+      <li><b>RCC</b>: HSE = Crystal (25 МГц на Black Pill); Clock Configuration → HCLK 100 МГц.</li>
+      <li><b>SYS</b>: Debug = Serial Wire — інакше ST-Link «загубить» плату.</li>
+      <li><b>TIM1 CH1</b> = PWM Generation на PA8. Prescaler = 0, Counter Period (ARR) = 4999 → 100 МГц / 5000 = <b>20 кГц</b>.</li>
+      <li><b>I2C1</b> на PB6/PB7, Fast Mode 400 кГц.</li>
+      <li><b>ADC1 IN1</b> на PA1.</li>
+      <li>GPIO Input + Pull-up: PB12–PB15 (кнопки); GPIO Input: PB0 (PIR).</li>
+      <li>USB_OTG_FS Device + Middleware USB_DEVICE (CDC) — для логу.</li>
+    </ul>
+  </li>
+  <li>Згенерувати код. Свій код пишіть <b>лише між</b> <code>/* USER CODE BEGIN */</code> і <code>/* USER CODE END */</code>, бо решту CubeMX перезапише. Скажіть про це ШІ-агенту явно.</li>
+</ol>
+
+<h3>Відповідники Arduino → HAL</h3>
+<div class="table-wrap"><table>
+<tr><th>Arduino</th><th>HAL</th></tr>
+<tr><td><code>analogWrite(PA8, d)</code></td><td><code>HAL_TIM_PWM_Start(&amp;htim1, TIM_CHANNEL_1)</code> один раз, потім <code>__HAL_TIM_SET_COMPARE(&amp;htim1, TIM_CHANNEL_1, d)</code></td></tr>
+<tr><td><code>digitalRead(PB12)</code></td><td><code>HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)</code></td></tr>
+<tr><td><code>millis()</code></td><td><code>HAL_GetTick()</code></td></tr>
+<tr><td><code>Wire</code> (BH1750)</td><td><code>HAL_I2C_Master_Transmit</code> / <code>HAL_I2C_Master_Receive</code></td></tr>
+<tr><td><code>analogRead(PA1)</code></td><td><code>HAL_ADC_Start</code> → <code>HAL_ADC_PollForConversion</code> → <code>HAL_ADC_GetValue</code></td></tr>
+</table></div>
+
+<pre><code><span class="c">/* USER CODE BEGIN 2 */</span>
+<span class="k">uint8_t</span> cmd = <span class="n">0x01</span>;                                  <span class="c">// BH1750: Power On</span>
+HAL_I2C_Master_Transmit(&amp;hi2c1, <span class="n">0x23</span> &lt;&lt; <span class="n">1</span>, &amp;cmd, <span class="n">1</span>, <span class="n">100</span>);
+cmd = <span class="n">0x10</span>;                                          <span class="c">// Continuous H-Resolution</span>
+HAL_I2C_Master_Transmit(&amp;hi2c1, <span class="n">0x23</span> &lt;&lt; <span class="n">1</span>, &amp;cmd, <span class="n">1</span>, <span class="n">100</span>);
+HAL_TIM_PWM_Start(&amp;htim1, TIM_CHANNEL_1);
+<span class="c">/* USER CODE END 2 */</span>
+
+<span class="c">/* USER CODE BEGIN 3 */</span>
+<span class="k">uint8_t</span> buf[<span class="n">2</span>];
+HAL_I2C_Master_Receive(&amp;hi2c1, <span class="n">0x23</span> &lt;&lt; <span class="n">1</span>, buf, <span class="n">2</span>, <span class="n">100</span>);
+<span class="k">float</span> lux = ((buf[<span class="n">0</span>] &lt;&lt; <span class="n">8</span>) | buf[<span class="n">1</span>]) / <span class="n">1.2f</span>;          <span class="c">// формула з datasheet</span>
+__HAL_TIM_SET_COMPARE(&amp;htim1, TIM_CHANNEL_1, lux &lt; <span class="n">30</span> ? <span class="n">4000</span> : <span class="n">0</span>);
+HAL_Delay(<span class="n">200</span>);                                       <span class="c">// лише для демо!</span>
+<span class="c">/* USER CODE END 3 */</span></code></pre>
+<div class="callout tip"><span class="callout-title">Налагодження</span>Кнопка Debug → breakpoints, покрокове виконання, вікно Live Expressions (значення змінних наживо). Тут ST-Link окупається повністю — це як Debugger в Unity, тільки для мікроконтролера.</div>
+
+<h2 id="next">Кроки 3+ (за бажанням)</h2>
+<ul>
+  <li>Кнопки на перериваннях EXTI.</li>
+  <li>I2C через DMA.</li>
+  <li>FreeRTOS (CubeMX → Middleware): окремі задачі для датчиків і UI.</li>
+  <li>Режими сну: порівняти споживання ESP32-C3 і STM32.</li>
+</ul>
+
+<h2 id="check">Чек-лист</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="s1" data-key="s1"><label for="s1"><code>pio run -e blackpill</code> збирається</label></li>
+  <li><input type="checkbox" id="s2" data-key="s2"><label for="s2">Прошивка через DFU або ST-Link працює</label></li>
+  <li><input type="checkbox" id="s3" data-key="s3"><label for="s3">Проєкт працює на Black Pill так само, як на ESP32-C3</label></li>
+  <li><input type="checkbox" id="s4" data-key="s4"><label for="s4">CubeMX-проєкт: ШІМ 20 кГц на PA8</label></li>
+  <li><input type="checkbox" id="s5" data-key="s5"><label for="s5">CubeMX-проєкт: BH1750 через HAL I2C</label></li>
+  <li><input type="checkbox" id="s6" data-key="s6"><label for="s6">Поставив(-ла) breakpoint і подивився(-лася) змінні</label></li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>

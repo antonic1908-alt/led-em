@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>План навчання</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar"><a href="index.html">Зміст</a></aside>
+<main class="main">
+<div class="topbar"><div class="crumbs"><a href="index.html">Головна</a> / 01</div><button class="btn menu-btn" type="button">☰ Меню</button></div>
+
+<h1>01. План навчання</h1>
+<p class="lead">Від «ніколи не тримав мікроконтролер» до власного пристрою за 6–8 тижнів по 5–8 годин на тиждень. Кожен етап закінчується контрольною точкою: чимось, що можна побачити своїми очима.</p>
+
+<h2 id="idea">Головна ідея: мікроконтролер — це Unity без рушія</h2>
+<p>Мікроконтролер — маленький комп'ютер без операційної системи. Після ввімкнення він виконує одну вашу програму, вічно. Немає вікон, файлів і збирача сміття, зате є <b>ніжки (піни)</b>, на яких можна вмикати й вимикати напругу та вимірювати її.</p>
+
+<figure class="diagram">
+<div class="diagram-scroll">
+<svg viewBox="0 0 760 230" role="img" aria-label="Порівняння життєвого циклу Unity і Arduino">
+  <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+  <text x="180" y="24" text-anchor="middle" class="d-ta">Unity (C#)</text>
+  <text x="580" y="24" text-anchor="middle" class="d-ta">Мікроконтролер (C++)</text>
+  <rect x="80" y="40" width="200" height="44" rx="9" class="d-box2"/><text x="180" y="67" text-anchor="middle" class="d-tm">Start()</text>
+  <rect x="80" y="120" width="200" height="44" rx="9" class="d-acc"/><text x="180" y="147" text-anchor="middle" class="d-tm">Update()  ~60/с</text>
+  <path d="M180 84 V118" class="d-arrow" marker-end="url(#a1)"/>
+  <path d="M280 142 C330 142 330 190 180 190 C40 190 40 142 78 142" class="d-arrow" marker-end="url(#a1)"/>
+  <text x="180" y="214" text-anchor="middle" class="d-ts">кожен кадр</text>
+
+  <rect x="480" y="40" width="200" height="44" rx="9" class="d-box2"/><text x="580" y="67" text-anchor="middle" class="d-tm">setup()</text>
+  <rect x="480" y="120" width="200" height="44" rx="9" class="d-acc"/><text x="580" y="147" text-anchor="middle" class="d-tm">loop()  ~100 000/с</text>
+  <path d="M580 84 V118" class="d-arrow" marker-end="url(#a1)"/>
+  <path d="M680 142 C730 142 730 190 580 190 C440 190 440 142 478 142" class="d-arrow" marker-end="url(#a1)"/>
+  <text x="580" y="214" text-anchor="middle" class="d-ts">нескінченно, поки є живлення</text>
+  <text x="380" y="105" text-anchor="middle" class="d-tb">≈</text>
+</svg>
+</div>
+<figcaption>Життєвий цикл програми знайомий: <code>setup()</code> ≈ <code>Start()</code>, <code>loop()</code> ≈ <code>Update()</code>.</figcaption>
+</figure>
+
+<h3>Шпаргалка C# / Unity → мікроконтролер</h3>
+<div class="table-wrap"><table>
+<tr><th>Unity / C#</th><th>Мікроконтролер / C++</th><th>Коментар</th></tr>
+<tr><td><code>Start()</code></td><td><code>setup()</code></td><td>раз після ввімкнення або reset</td></tr>
+<tr><td><code>Update()</code></td><td><code>loop()</code></td><td>без FPS-обмеження, крутиться так швидко, як може</td></tr>
+<tr><td><code>Time.time</code></td><td><code>millis()</code></td><td>мілісекунди від старту, тип <code>uint32_t</code></td></tr>
+<tr><td><code>Time.deltaTime</code></td><td><code>now - lastUpdate</code></td><td>рахуємо самі</td></tr>
+<tr><td><code>Debug.Log()</code></td><td><code>Serial.println()</code></td><td>текст іде по USB у Serial Monitor</td></tr>
+<tr><td><code>Input.GetKeyDown()</code></td><td><code>digitalRead()</code> + debounce</td><td>кнопка «брязкає», див. урок 02</td></tr>
+<tr><td>Coroutine + <code>WaitForSeconds</code></td><td><b>не</b> <code>delay()</code>, а таймстемп</td><td><code>delay()</code> заморожує все</td></tr>
+<tr><td>Animator / state machine</td><td><code>enum class State</code> + <code>switch</code></td><td>так зроблено фінальний проєкт</td></tr>
+<tr><td>ScriptableObject + PlayerPrefs</td><td><code>struct Settings</code> + flash (NVS/EEPROM)</td><td>налаштування переживають вимкнення</td></tr>
+<tr><td>Garbage Collector</td><td>його немає</td><td>не використовуйте <code>new</code> і <code>String</code> у циклі</td></tr>
+<tr><td><code>int</code> (завжди 32 біти)</td><td><code>int32_t</code>, <code>uint8_t</code>…</td><td>розмір явно в назві типу</td></tr>
+<tr><td><code>namespace</code>, <code>class</code></td><td>те саме</td><td>плюс файли <code>.h</code> (оголошення) і <code>.cpp</code> (реалізація)</td></tr>
+</table></div>
+
+<h2 id="stages">Етапи і контрольні точки</h2>
+
+<h3 id="stage0">Етап 0 — Підготовка <span class="pill">тиждень 1</span></h3>
+<ul>
+  <li>Встановіть ПЗ за розділом <a href="03-software.html">03</a>.</li>
+  <li>Відкрийте <a href="https://wokwi.com">wokwi.com</a>, створіть проєкт ESP32-C3 і запустіть приклад Blink. Встановлювати нічого не треба.</li>
+  <li>Прошийте урок 01 у реальну плату.</li>
+</ul>
+<div class="callout tip"><span class="callout-title">Контрольна точка</span>Вбудований синій LED мигає, а в Serial Monitor щосекунди з'являється <code>[blink] led=1 count=…</code>.</div>
+
+<h3 id="cpp">Етап 1 — C++ для C#-розробника <span class="pill">тижні 1–2, паралельно з уроками</span></h3>
+<p>Ви вже знаєте змінні, умови, цикли, класи. Нове лише таке:</p>
+<ol>
+  <li><b>Типи фіксованої ширини:</b> <code>uint8_t</code> (0…255), <code>int16_t</code>, <code>uint32_t</code>. На мікроконтролері пам'ять рахується в байтах.</li>
+  <li><b>Препроцесор:</b> <code>#include</code>, <code>#define</code>, <code>#if</code>. Це «текстова заміна» до компіляції, так ми обираємо код для ESP32 або STM32.</li>
+  <li><b>Header/source:</b> <code>Button.h</code> — оголошення класу (як interface), <code>Button.cpp</code> — реалізація.</li>
+  <li><b>Вказівники та посилання:</b> <code>Settings&amp; s</code> — передати об'єкт без копіювання (як <code>ref</code> у C#).</li>
+  <li><b><code>const</code> / <code>constexpr</code>:</b> константи, обчислені під час компіляції, не займають RAM.</li>
+  <li><b>Переповнення:</b> <code>uint8_t x = 255; x++;</code> → 0. Тому таймер пишемо як <code>if (now - t0 &gt;= interval)</code>.</li>
+  <li><b>Неблокуючий код і скінченний автомат</b> — головна навичка embedded-розробника.</li>
+</ol>
+
+<pre><code><span class="c">// Неблокуюче мигання: loop() ніколи не «засинає»</span>
+<span class="k">uint32_t</span> last = <span class="n">0</span>;
+<span class="k">void</span> loop() {
+  <span class="k">uint32_t</span> now = millis();
+  <span class="k">if</span> (now - last &gt;= <span class="n">500</span>) {   <span class="c">// пройшло 500 мс?</span>
+    last = now;
+    digitalWrite(<span class="n">8</span>, !digitalRead(<span class="n">8</span>));
+  }
+  <span class="c">// ...тут встигаємо опитати кнопки, датчики, дисплей</span>
+}</code></pre>
+
+<div class="callout unity"><span class="callout-title">Аналогія з Unity</span>Уявіть, що в <code>Update()</code> ви написали <code>Thread.Sleep(1000)</code>: гра замерзне на секунду. <code>delay(1000)</code> робить те саме: поки він триває, кнопки не реагують, дисплей не оновлюється.</div>
+
+<p><b>Ресурси:</b> <a href="https://www.learncpp.com">learncpp.com</a> (розділи 1–13, вибірково) і ШІ-асистент з промптом «поясни як C#-розробнику».</p>
+
+<h3 id="stage2">Етап 2 — Периферія: уроки 01–08 <span class="pill">тижні 2–4</span></h3>
+<div class="table-wrap"><table>
+<tr><th class="num">#</th><th>Тема</th><th>Що вивчаємо</th></tr>
+<tr><td class="num">01</td><td>Blink + Serial</td><td>GPIO-вихід, <code>millis()</code>, лог</td></tr>
+<tr><td class="num">02</td><td>Кнопки</td><td>pull-up, брязкіт контактів, коротке і довге натискання</td></tr>
+<tr><td class="num">03</td><td>ШІМ + MOSFET</td><td>керування яскравістю стрічки, гамма-корекція</td></tr>
+<tr><td class="num">04</td><td>АЦП + фоторезистор</td><td>дільник напруги, <code>analogRead</code>, фільтр</td></tr>
+<tr><td class="num">05</td><td>PIR HC-SR501</td><td>цифровий датчик, налаштування потенціометрами</td></tr>
+<tr><td class="num">06</td><td>I2C + BH1750</td><td>шина I2C, адреси, сканер, бібліотеки</td></tr>
+<tr><td class="num">07</td><td>OLED SSD1306</td><td>U8g2, буфер кадру, кирилиця</td></tr>
+<tr><td class="num">08</td><td>Дистанція</td><td>VL53L0X (I2C) або HC-SR04 (імпульси)</td></tr>
+</table></div>
+<p>Цикл кожного уроку: <b>Wokwi → макетка → «Зміни сам»</b>. Деталі — на сторінці <a href="lessons.html">Уроки</a>.</p>
+
+<h3 id="stage3">Етап 3 — Проєкт <span class="pill">тижні 4–6</span></h3>
+<ol>
+  <li>Прочитати ТЗ (<a href="06-project.html">06</a>) і зібрати схему (<a href="05-hardware.html">05</a>).</li>
+  <li>Прошити готову прошивку з <code>firmware/</code> і переконатися, що все працює.</li>
+  <li>Разом з ШІ розібрати кожен модуль: кнопки → датчики → драйвер стрічки → контролер → меню.</li>
+  <li>Додати власну функцію, наприклад «нічний режим» на 20 % яскравості з 23:00 до 6:00 (час — через Wi-Fi/NTP).</li>
+</ol>
+
+<h3 id="stage4">Етап 4 — STM32 <span class="pill">тижні 6–8</span></h3>
+<ol>
+  <li>Той самий проєкт на STM32F411 через PlatformIO — змінюються лише піни.</li>
+  <li>STM32CubeIDE + CubeMX + HAL: тактування, таймер у режимі ШІМ, I2C, покрокове налагодження через ST-Link.</li>
+</ol>
+<div class="callout tip"><span class="callout-title">Контрольна точка</span>Ви можете пояснити, що робить <code>analogWrite()</code> «під капотом»: налаштовує таймер і регістр порівняння, як у CubeMX.</div>
+
+<h2 id="with-ai">Як вчитися з ШІ, а не замість себе</h2>
+<ol>
+  <li>Спершу сформулюйте рішення словами, а потім просіть код.</li>
+  <li>Просіть: «поясни кожен рядок як для C#-розробника».</li>
+  <li>Після уроку: «постав мені 5 контрольних питань і перевір відповіді».</li>
+  <li>Ламайте навмисно: приберіть pull-up, поставте <code>delay(1000)</code> у <code>loop()</code> і подивіться, що станеться.</li>
+  <li>Ведіть нотатки «що я зрозумів» — так ви побачите прогалини.</li>
+</ol>
+
+<h2 id="progress">Мій прогрес</h2>
+<ul class="checklist">
+  <li><input type="checkbox" id="c1" data-key="s0"><label for="c1">Етап 0: Blink працює в Wokwi і на платі</label></li>
+  <li><input type="checkbox" id="c2" data-key="s1"><label for="c2">Етап 1: розумію <code>millis()</code>, типи, .h/.cpp</label></li>
+  <li><input type="checkbox" id="c3" data-key="s2a"><label for="c3">Уроки 01–04</label></li>
+  <li><input type="checkbox" id="c4" data-key="s2b"><label for="c4">Уроки 05–08</label></li>
+  <li><input type="checkbox" id="c5" data-key="s3"><label for="c5">Етап 3: проєкт працює на ESP32-C3</label></li>
+  <li><input type="checkbox" id="c6" data-key="s3b"><label for="c6">Додав(-ла) власну функцію</label></li>
+  <li><input type="checkbox" id="c7" data-key="s4"><label for="c7">Етап 4: проєкт на STM32 (PlatformIO)</label></li>
+  <li><input type="checkbox" id="c8" data-key="s4b"><label for="c8">Етап 4: ШІМ і I2C через CubeMX + HAL</label></li>
+</ul>
+
+<h2 id="resources">Корисні ресурси</h2>
+<ul>
+  <li><a href="https://randomnerdtutorials.com/getting-started-esp32-c3-super-mini/">Random Nerd Tutorials — ESP32-C3 Super Mini</a></li>
+  <li><a href="https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/">Last Minute Engineers — розпіновка Super Mini</a></li>
+  <li><a href="https://docs.espressif.com/projects/arduino-esp32/">Документація Arduino-ESP32</a></li>
+  <li><a href="https://docs.wokwi.com">Документація Wokwi</a></li>
+  <li><a href="https://github.com/stm32duino/Arduino_Core_STM32">STM32duino</a></li>
+  <li><a href="https://www.st.com/content/st_com/en/support/learning/stm32-education.html">ST — навчальні матеріали і MOOC</a></li>
+  <li><a href="https://www.learncpp.com">learncpp.com</a></li>
+</ul>
+
+<nav class="pager" id="pager"></nav>
+</main>
+</div>
+</body>
+</html>
