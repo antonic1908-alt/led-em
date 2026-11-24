@@ -26,10 +26,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}   # адреса сайту з'явиться у звіті запуску
     steps:
-      - uses: actions/checkout@v4                 # завантажити код репозиторію
-      - uses: actions/configure-pages@v5          # підготувати налаштування Pages
-      - uses: actions/upload-pages-artifact@v3    # запакувати папку site/
+      - uses: actions/checkout@v7                 # завантажити код репозиторію
+      - uses: actions/configure-pages@v6          # підготувати налаштування Pages
+      - uses: actions/upload-pages-artifact@v5    # запакувати папку site/ (файли, що починаються з крапки, не потрапляють)
         with:
           path: site
       - id: deployment
-        uses: actions/deploy-pages@v4             # опублікувати
+        uses: actions/deploy-pages@v5             # опублікувати (версія має відповідати upload-pages-artifact)
