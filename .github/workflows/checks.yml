@@ -22,14 +22,14 @@ jobs:
           - project: lessons
             envs: -e l01_blink -e l02_button -e l03_pwm_mosfet -e l04_adc_ldr -e l05_pir -e l06_i2c_bh1750 -e l07_oled -e l08_distance
     steps:
-      - uses: actions/checkout@v4                 # завантажити код
-      - uses: actions/cache@v4                    # кеш компіляторів і платформ — щоб наступні запуски були швидші
+      - uses: actions/checkout@v7                 # завантажити код
+      - uses: actions/cache@v6                    # кеш компіляторів і платформ — щоб наступні запуски були швидші
         with:
           path: |
             ~/.platformio
             ~/.cache/pip
           key: pio-${{ runner.os }}-${{ matrix.project }}-${{ hashFiles(format('{0}/platformio.ini', matrix.project)) }}
-      - uses: actions/setup-python@v5             # PlatformIO написаний на Python
+      - uses: actions/setup-python@v7             # PlatformIO написаний на Python
         with:
           python-version: '3.12'
       - run: pip install platformio               # встановити PlatformIO
@@ -39,7 +39,7 @@ jobs:
     name: Посилання на сайті
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: lycheeverse/lychee-action@v2        # перевірка посилань
         with:
           # --offline: лише локальні файли й якорі (#...), без запитів до зовнішніх сайтів
